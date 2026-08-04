@@ -1,0 +1,11 @@
+sqlalchemy>=2.0
+alembic>=1.13
+pymysql>=1.1
+cryptography>=42.0
+python-dotenv>=1.0
+minio>=7.2
+redis>=5.0
+pymupdf>=1.24
+google-api-python-client>=2.100
+google-auth-httplib2>=0.2
+google-auth-oauthlib>=1.2
