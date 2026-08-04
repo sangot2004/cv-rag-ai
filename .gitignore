@@ -1,0 +1,38 @@
+.env
+credentials.json
+token.json
+*.pem
+*.key
+
+# Python 
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.python-version
+
+#  Testing / coverage 
+.pytest_cache/
+.coverage
+htmlcov/
+
+#  Logs 
+logs/
+*.log
+
+#  Alembic 
+#  IDE 
+.vscode/
+.idea/
+*.swp
+
+#  OS 
+.DS_Store
+Thumbs.db
+
+*.pdf
+!tests/**/fixtures/*.pdf
