@@ -1,5 +1,8 @@
 import os
 from functools import lru_cache
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings:
@@ -14,7 +17,7 @@ class Settings:
     MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
     MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
     MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "minioadmin123")
-    MINIO_BUCKET: str = os.getenv("MINIO_BUCKET", "cvrag-bucket")
+    MINIO_BUCKET: str = os.getenv("MINIO_BUCKET", "cv-rag-files")
     MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
     # Gmail intake

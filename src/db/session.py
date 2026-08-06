@@ -3,6 +3,8 @@ from sqlalchemy.orm import sessionmaker
 
 from src.config.settings import get_settings
 
+settings = get_settings()
+
 engine = create_engine(settings.MYSQL_CONN, pool_pre_ping=True, future=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
