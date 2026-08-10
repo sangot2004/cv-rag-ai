@@ -83,7 +83,7 @@ class EmailIntakePipeline:
             return False
 
         content_hash = compute_content_hash(attachment.data)
-        job_id = str(uuid.uuid4)
+        job_id = str(uuid.uuid4())
         object_key = self.storage.build_object_key(job_id, attachment.filename)
 
         if self.dry_run:
@@ -115,11 +115,26 @@ class EmailIntakePipeline:
             session.add(job)
             session.commit()
 
+            self._dispatch_parsing_task(job_id)
+
             logger.info("Accepted CV job_id=%s file=%s", job_id, attachment.filename)
             return True
 
     @staticmethod
-    def is_duplicate_content(session, content_hash: str) -> bool:
+    def _dispatch_parsing_task(job_id: str) -> None:
+        """Đẩy job_id vào Redis Queue để Celery Worker (Luồng A) tự nhặt lên xử lý.
+        Import trễ (bên trong hàm) để tránh vòng import với celery_app khi
+        pipeline này được dùng ở dry-run/test mà không cần khởi động Celery.
+        """
+        from src.workers.celery_app import celery_app
+
+        result = celery_app.send_task(
+            "src.workers.tasks_ingestion.process_cv_job", args=[job_id]
+        )
+        logger.info("Dispatched process_cv_job task_id=%s cho job_id=%s", result.id, job_id)
+
+    @staticmethod
+    def _is_duplicate_content(session, content_hash: str) -> bool:
         from src.db.models import Candidate
 
         existing = (

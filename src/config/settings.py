@@ -34,7 +34,7 @@ class Settings:
         "CV_FILENAME_PATTERN", r"^[A-Za-zÀ-ỹ]+_[A-Za-z0-9]+_CV\.pdf$"
     )
     CV_MIN_FILE_SIZE_BYTES: int = int(os.getenv("CV_MIN_FILE_SIZE_BYTES", 50*1024))  # 50KB
-    CV_MAX_FILE_SIZE_BYTES: int = int(os.getenv("CV_MAX_FILE_SIZE_BYTES", 5*1024*1024))  # 5MB
+    CV_MAX_FILE_SIZE_BYTES: int = int(os.getenv("CV_MAX_FILE_SIZE_BYTES", 50*1024*1024))  # 50MB
     CV_MAX_PAGES: int = int(os.getenv("CV_MAX_PAGES", 10))  # 10 pages
 
     DEDUPE_MESSAGE_TTL_SECONDS: int = int(os.getenv("DEDUPE_MESSAGE_TTL_SECONDS", 7*24*3600))
