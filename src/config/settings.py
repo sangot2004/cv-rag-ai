@@ -12,6 +12,7 @@ class Settings:
     )
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
+    QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "cv_chunks")
 
     # MINIO
     MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
@@ -36,8 +37,17 @@ class Settings:
     CV_MIN_FILE_SIZE_BYTES: int = int(os.getenv("CV_MIN_FILE_SIZE_BYTES", 50*1024))  # 50KB
     CV_MAX_FILE_SIZE_BYTES: int = int(os.getenv("CV_MAX_FILE_SIZE_BYTES", 50*1024*1024))  # 50MB
     CV_MAX_PAGES: int = int(os.getenv("CV_MAX_PAGES", 10))  # 10 pages
+    CV_MIN_TEXT_LENGTH: int = int(os.getenv("CV_MIN_TEXT_LENGTH", 100))
+    CV_CLASSIFY_MIN_CONFIDENCE: float = float(os.getenv("CV_CLASSIFY_MIN_CONFIDENCE", 0.6))
 
     DEDUPE_MESSAGE_TTL_SECONDS: int = int(os.getenv("DEDUPE_MESSAGE_TTL_SECONDS", 7*24*3600))
+
+    # gemini- dùng cả llm extract và embedding
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    GEMINI_LLM_MODEL: str = os.getenv("GEMINI_LLM_MODEL", "gemini-3.5-flash")
+    GEMINI_CLASSIFY_MODEL: str = os.getenv("GEMINI_CLASSIFY_MODEL", 'gemini-3.5-flash-lite')
+    GEMINI_EMBEDDING_MODEL: str = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+    EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", 768))
 
 
 @lru_cache()

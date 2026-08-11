@@ -2,6 +2,7 @@ import logging
 
 from src.db.models import IngestionJob
 from src.db.session import SessionLocal
+from src.ingestion.pipeline import CVIngestionError, CVRejected, run_ingestion_pipeline
 from src.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -9,48 +10,70 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(name="src.workers.tasks_ingestion.poll_email_intake")
 def poll_email_intake() -> dict:
-    "chạy định kỳ qua celery beat"
+    """Chạy định kỳ qua Celery Beat (xem beat_schedule trong celery_app.py)."""
     from src.ingestion.email_intake.intake_pipeline import EmailIntakePipeline
 
     pipeline = EmailIntakePipeline(dry_run=False)
     stats = pipeline.run_once()
-    logger.info("poll_email_intake finished; %s", stats)
+    logger.info("poll_email_intake finished: %s", stats)
     return stats
 
 
 @celery_app.task(
     name="src.workers.tasks_ingestion.process_cv_job",
     bind=True,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_backoff_max=300,
     max_retries=3,
 )
 def process_cv_job(self, job_id: str) -> None:
+    """Luồng A + B đầy đủ: parse -> classify -> extract -> chunk -> embed -> index.
+
+    Retry logic tự quản (không dùng autoretry_for chung chung nữa) để phân
+    biệt rõ 2 loại lỗi:
+      - CVRejected: lỗi bản chất (không phải CV, file hỏng, thiếu field...)
+        -> set status='rejected' NGAY, không retry vô ích.
+      - Exception khác: lỗi tạm thời (mạng, MinIO, LLM timeout...)
+        -> tăng attempts, retry có backoff, vượt max_attempts thì chuyển 'dlq'.
     """
-    Entry point của Luồng A (Parsing & Extraction) — được dispatch tự động
-    ngay sau khi EmailIntakePipeline ghi xong ingestion_jobs (status='pending').
+    logger.info("process_cv_job bắt đầu job_id=%s", job_id)
 
-    ĐANG LÀ PLACEHOLDER: mới nối được dây dispatch job_id -> Celery queue,
-    logic parse/extract thật (A2-A9 trong worklog) chưa code — thuộc
-    Giai đoạn 2, làm sau. Hiện task chỉ xác nhận nhận được job và cập nhật
-    status='parsing' để đánh dấu đã vào hàng đợi xử lý, tránh job nằm mãi
-    ở 'pending' không ai biết có bị nhặt lên hay chưa.
-    """
+    try:
+        candidate_id = run_ingestion_pipeline(job_id)
+        logger.info("process_cv_job thành công job_id=%s candidate_id=%s", job_id, candidate_id)
+        return
 
-    logger.info("process_cv_job received job_id=%s (parsing chưa implement)", job_id)
+    except CVRejected as e:
+        logger.warning("Job %s bị reject: %s", job_id, e.reason)
+        with SessionLocal() as session:
+            job = session.get(IngestionJob, job_id)
+            if job:
+                job.status = "rejected"
+                job.error_message = e.reason
+                session.commit()
+        return  # không retry — lỗi bản chất, retry lại vẫn sai
 
-    with SessionLocal() as session:
-        job = session.get(IngestionJob, job_id)
-        if job is None:
-            logger.error("job_id=%s không tồn tại trong ingestion_jobs", job_id)
-            return
+    except Exception as e:
+        with SessionLocal() as session:
+            job = session.get(IngestionJob, job_id)
+            if job is None:
+                logger.error("job_id=%s không tồn tại, bỏ qua", job_id)
+                return
 
-        job.status = "parsing"
-        session.commit()
+            job.attempts += 1
 
-    # TODO (Giai đoạn 2 — Luồng A):
-    #   A3 load file từ MinIO -> A4 parse (PyMuPDF/python-docx) -> A5 check text hợp lệ
-    #   -> A5b validate nội dung có phải CV -> A5c check content_hash trùng
-    #   -> A6 LLM structured extraction -> A7 validate schema -> A8 update status
-    #   Xem chi tiết bảng Luồng A trong worklog.
+            if job.attempts >= job.max_attempts:
+                job.status = "dlq"
+                job.error_message = f"vuot_max_attempts: {e}"
+                session.commit()
+                logger.error("Job %s vượt max_attempts (%d), chuyển DLQ", job_id, job.max_attempts)
+                return
+
+            job.status = "failed"
+            job.error_message = str(e)
+            session.commit()
+            attempts_now = job.attempts
+            max_attempts_now = job.max_attempts
+
+        logger.warning(
+            "Job %s lỗi (lần thử %d/%s), sẽ retry: %s", job_id, attempts_now, max_attempts_now, e
+        )
+        raise self.retry(exc=e, countdown=min(60 * (2 ** self.request.retries), 900))

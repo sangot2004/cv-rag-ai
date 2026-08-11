@@ -1,10 +1,11 @@
 .env
+.env.example
 credentials.json
 token.json
 *.pem
 *.key
 
-# Python 
+#  Python 
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,15 +25,21 @@ htmlcov/
 logs/
 *.log
 
-#  Alembic 
-#  IDE 
+#  Alembic — 
+
+# IDE 
 .vscode/
 .idea/
 *.swp
 
-#  OS 
+# OS 
 .DS_Store
 Thumbs.db
 
+
+
+# ===== Script test/debug thủ công — không đẩy lên repo chung =====
+test_pipeline.py
+#pdf
 *.pdf
-!tests/**/fixtures/*.pdf
+!tests/**/fixtures/*.pdfcelerybeat-schedule.db
