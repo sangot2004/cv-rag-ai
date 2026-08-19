@@ -18,7 +18,7 @@ celery_app = Celery(
 
 celery_app.conf.update(
     task_serializer="json",
-    accep_content=["json"],
+    accept_content=["json"],
     result_serializer="json",
     timezone="Asia/Ho_Chi_Minh",
     enable_utc=True,
@@ -31,7 +31,7 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "pool-gmail-intake-every-2-minutes": {
         "task": "src.workers.tasks_ingestion.poll_email_intake",
-        "schedule": crontab(minute="*/2")
+        "schedule": crontab(minute="*/5")
     },
     "refresh-bm25-index-every-15-minutes": {
         "task": "src.workers.tasks_retrieval.refresh_bm25_index",

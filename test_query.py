@@ -62,13 +62,30 @@ def main():
     # b5: Test Agent
     step("Step 5: Agent (Gemini tool-calling) ")
     from src.agent.router import ask
+    print("Nhập câu hỏi cho agent. Gõ 'quit' or 'exit' để dừng.\n")
+    while True:
+        question = input("Câu hỏi (Enter để dùng câu hỏi mẫu): ").strip()
+        if question.lower() in ("quit", "exit", "q"):
+            print("Đã dừng vòng lặp Agent.")
+            break
 
-    question = input("Nhập câu hỏi cho Agent (Enter để dùng câu hỏi mẫu): ").strip()
-    if not question:
-        question = "Liệt kê các ứng viên có trong hệ thống"
-    print(f"\nCâu hỏi: {question}")
-    answer = ask(question)
-    print(f"\nAgent trả lời:\n{answer}")
+        if not question:
+            question = "Liệt kê các ứng viên có trong hệ thống"
+
+        print(f"\nCâu hỏi: {question}")
+        answer = ask(question)
+
+        print("\nAgent trả lời:")
+        if isinstance(answer, list):
+            for block in answer:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    print(block["text"])
+                else:
+                    print(block)
+        else:
+            print(answer)
+
+        print("\n" + "-" * 60 + "\n")
 
     step("HOÀN THÀNH — Giai đoạn 3 chạy thông suốt")
 

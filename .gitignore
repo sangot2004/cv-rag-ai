@@ -36,6 +36,11 @@ logs/
 .DS_Store
 Thumbs.db
 
+#
+evals/eval_data_template.json
+evals/eval_data.json
+
+
 
 
 # ===== Script test/debug thủ công — không đẩy lên repo chung =====
