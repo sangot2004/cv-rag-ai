@@ -18,6 +18,17 @@ QUAN TRỌNG về end_date: nếu CV ghi "Present", "Hiện tại", "Now", hoặ
 kết thúc (nghĩa là công việc/học vấn đó vẫn đang tiếp diễn), PHẢI để end_date=None.
 TUYỆT ĐỐI không tự suy đoán hay bịa ra một ngày cụ thể cho trường hợp này.
 
+Về certificates: chỉ lấy các mục CV ghi rõ trong phần "Chứng chỉ"/"Certifications"/
+"Certificates" — KHÔNG tự suy diễn 1 khóa học hay 1 dự án thành chứng chỉ nếu CV
+không ghi rõ đó là chứng chỉ đã được cấp. Để rỗng nếu CV không có phần này.
+
+Về projects: lấy từ phần "Dự án"/"Projects" nếu có. Tách rõ 3 phần riêng biệt:
+- role: vai trò của ứng viên trong dự án (nếu CV ghi rõ)
+- tech_stack: danh sách công nghệ dùng trong dự án (tách thành list, không để chung câu văn)
+- description: chỉ mô tả nội dung/mục tiêu dự án, KHÔNG lặp lại role hay tech_stack đã tách
+Nếu 1 dự án chỉ là 1 dòng liệt kê trong phần Experience (không có mục Projects riêng),
+không cần tách ra thành project — chỉ lấy phần Projects là mục riêng biệt trong CV.
+
 CV:
 ---
 {text}

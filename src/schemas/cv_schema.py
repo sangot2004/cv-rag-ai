@@ -16,6 +16,23 @@ class EducationItem(BaseModel):
     graduation_year: int | None = Field(default=None, description="Năm tốt nghiệp nếu có")
 
 
+class CertificateItem(BaseModel):
+    name: str = Field(description="Tên chứng chỉ, ví dụ: AWS Certified Solutions Architect")
+    issuer: str | None = Field(default=None, description="Đơn vị cấp chứng chỉ")
+    issue_date: str | None = Field(default=None, description="Ngày cấp, định dạng YYYY-MM nếu có")
+    credential_id: str | None = Field(default=None, description="Mã chứng chỉ nếu CV có ghi rõ")
+
+
+class ProjectItem(BaseModel):
+    name: str = Field(description="Tên dự án")
+    role: str | None = Field(default=None, description="Vai trò trong dự án, ví dụ: Backend Developer")
+    tech_stack: list[str] = Field(default=list, description="Công nghệ/ngôn ngữ dùng trong dự án")
+    description: str | None = Field(
+        default=None, description="Mô tả dự án, không bao gồm role/tech_stack đã tách riêng")
+    start_date: str | None = Field(default=None, description="YYYY-MM nếu có")
+    end_date: str | None = Field(default=None, description="YYYY-MM, None nếu đang làm/không rõ")
+
+
 class CVSchema(BaseModel):
     full_name: str = Field(description="Họ tên đầy đủ ứng viên")
     email: str | None = Field(default=None)
@@ -29,6 +46,10 @@ class CVSchema(BaseModel):
     skills: list[str] = Field(default_factory=list)
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
+    certificates: list[CertificateItem] = Field(
+        default_factory=list, description="Danh sách chứng chỉ, để rỗng nếu CV không đề cập")
+    projects: list[ProjectItem] = Field(
+        default_factory=list, description="Danh sách dự án đã làm, để rỗng nếu CV không đề cập")
 
 
 class CVClassification(BaseModel):

@@ -33,6 +33,37 @@ def build_documents_from_cv(cv_data: CVSchema, candidate_id: str, source_file: s
             )
         )
 
+    for cert in cv_data.certificates:
+        content = f"{cert.name}" + (f" - cấp bởi {cert.issuer}" if cert.issuer else "")
+        docs.append(
+            Document(
+                page_content=content,
+                metadata={
+                    "candidate_id": candidate_id,
+                    "section_type": "certificate",
+                    "source_file": source_file,
+                },
+            )
+        )
+
+    for proj in cv_data.projects:
+        tech = ", ".join(proj.tech_stack) if proj.tech_stack else ""
+        content = (
+            f"Dự án {proj.name}" + (f" - vai trò {proj.role}" if proj.role else "") + "\n"
+            f"Công nghệ: {tech}\n"
+            f"{proj.description or ''}"
+        ).strip()
+        docs.append(
+            Document(
+                page_content=content,
+                metadata={
+                    "candidate_id": candidate_id,
+                    "section_type": "project",
+                    "source_file": source_file,
+                },
+            )
+        )
+
     if cv_data.skills:
         docs.append(
             Document(
@@ -44,4 +75,5 @@ def build_documents_from_cv(cv_data: CVSchema, candidate_id: str, source_file: s
                 },
             )
         )
+
     return docs

@@ -143,6 +143,42 @@ class CandidateEducation(Base):
     candidate: Mapped["Candidate"] = relationship(back_populates="education")
 
 
+class CandidateCertificate(Base):
+    __tablename__ = "candidate_certificates"
+
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    candidate_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    issuer: Mapped[str | None] = mapped_column(VARCHAR(255), nullable=True)
+    issue_date: Mapped[datetime | None] = mapped_column(DATE, nullable=True)
+    credential_id: Mapped[str | None] = mapped_column(VARCHAR(100), nullable=True)
+
+    candidate: Mapped["Candidate"] = relationship(back_populates="certificates")
+
+    __table_args__ = (Index("idx_certificate_name", "name"),)
+
+
+class CandidateProject(Base):
+    __tablename__ = "candidate_projects"
+
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    candidate_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    role: Mapped[str | None] = mapped_column(VARCHAR(255), nullable=True)
+    tech_stack: Mapped[str | None] = mapped_column(
+        VARCHAR(500), nullable=True
+    )
+    description: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    start_date: Mapped[datetime | None] = mapped_column(DATE, nullable=True)
+    end_date: Mapped[datetime | None] = mapped_column(DATE, nullable=True)
+
+    candidate: Mapped["Candidate"] = relationship(back_populates="projects")
+
+
 class CandidateChunk(Base):
     __tablename__ = "candidate_chunks"
 

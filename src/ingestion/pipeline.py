@@ -4,7 +4,16 @@ import uuid
 from datetime import date, datetime
 
 from src.config.settings import get_settings
-from src.db.models import Candidate, CandidateChunk, CandidateEducation, CandidateExperience, CandidateSkill, IngestionJob
+from src.db.models import (
+    Candidate,
+    CandidateCertificate,
+    CandidateChunk,
+    CandidateEducation,
+    CandidateExperience,
+    CandidateProject,
+    CandidateSkill,
+    IngestionJob
+)
 from src.db.session import SessionLocal
 from src.ingestion.chunking.document_builder import build_documents_from_cv
 from src.ingestion.embedding.embedder import embed_texts
@@ -57,45 +66,44 @@ def run_ingestion_pipeline(job_id: str) -> str:
         if job is None:
             raise CVIngestionError(f"job_id={job_id} không tồn tại")
 
-        # ---- A3: load file từ MinIO ----
+        # load file từ MinIO
         try:
             file_bytes = storage.download_bytes(job.minio_object_key)
         except Exception as e:
             raise CVIngestionError(f"Không tải được file từ MinIO: {e}") from e
 
-        # ---- A4: parse ----
+        # parse
         try:
             raw_text = extract_text_from_pdf(file_bytes)
         except PdfParseError as e:
             raise CVRejected(f"corrupt_pdf: {e}")
 
-        # ---- A5: check text hợp lệ ----
+        # check text hợp lệ
         if len(raw_text) < settings.CV_MIN_TEXT_LENGTH:
             raise CVRejected("text_too_short_possibly_scanned_image")
 
-        # ---- A5b: classify có phải CV không ----
+        # classify có phải CV không
         classification = classify_is_cv(raw_text)
         if not classification.is_cv or classification.confidence < settings.CV_CLASSIFY_MIN_CONFIDENCE:
             raise CVRejected(f"not_a_cv: {classification.reason}")
 
-        # ---- A5c: check trùng nội dung theo text hash (khác content_hash bytes đã check lúc intake) ----
+        # check trùng nội dung theo text hash
         text_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
         existing = session.query(Candidate.candidate_id).filter(Candidate.content_hash == text_hash).first()
         if existing:
             raise CVRejected("duplicate_content_text_hash")
 
-        # ---- A6: LLM structured extraction ----
+        # LLM structured extraction
         try:
             cv_data = extract_cv_data(raw_text)
         except Exception as e:
             raise CVIngestionError(f"LLM extraction lỗi: {e}") from e
 
-        # ---- A7: validate schema — Pydantic đã validate lúc parse response,
-        # chỉ cần check thêm field bắt buộc quan trọng nhất ----
+        # validate schema — Pydantic đã validate lúc parse response,
         if not cv_data.full_name:
             raise CVRejected("extraction_missing_full_name")
 
-        # ---- B: ghi candidates + bảng con ----
+        # ghi candidates + bảng con
         candidate_id = str(uuid.uuid4())
         candidate = Candidate(
             candidate_id=candidate_id,
@@ -133,8 +141,29 @@ def run_ingestion_pipeline(job_id: str) -> str:
                     graduation_year=edu.graduation_year,
                 )
             )
+        for cert in cv_data.certificates:
+            session.add(
+                CandidateCertificate(
+                    candidate_id=candidate_id,
+                    name=cert.name,
+                    issuer=cert.issuer,
+                    issue_date=_parse_date(cert.issue_date),
+                    credential_id=cert.credential_id,
+                )
+            )
+        for proj in cv_data.projects:
+            session.add(
+                CandidateProject(
+                    candidate_id=candidate_id,
+                    name=proj.name,
+                    role=proj.role,
+                    tech_stack=",".join(proj.tech_stack) if proj.tech_stack else None,
+                    start_date=_parse_date(proj.start_date),
+                    end_date=_parse_date(proj.end_date),
+                )
+            )
 
-        # ---- B: chunking + embedding + Qdrant ----
+        # chunking + embedding + Qdrant
         documents = build_documents_from_cv(cv_data, candidate_id, job.original_filename)
 
         if documents:
@@ -159,7 +188,7 @@ def run_ingestion_pipeline(job_id: str) -> str:
             qdrant.ensure_collection()
             qdrant.upsert_chunks(chunk_ids, vectors, payloads)
 
-        # ---- Update job cuối cùng ----
+        # Update job cuối cùng
         job.candidate_id = candidate_id
         job.status = "indexed"
         session.commit()
