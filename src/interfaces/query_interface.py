@@ -6,13 +6,17 @@ from src.evaluation.evaluator import evaluate_candidate
 logger = logging.getLogger(__name__)
 
 
-def query_candidates(question: str) -> dict:
-    """Nhận câu hỏi từ hr (qua be), trả json anwer
-    input: question(str) -
+def query_candidates(question: str, thread_id: str = "default") -> dict:
+    """Nhận câu hỏi tự nhiên từ HR (qua Backend), trả JSON câu trả lời.
+
+    Input:  question (str) — câu hỏi tiếng Việt tự nhiên
+            thread_id (str) — định danh phiên hội thoại, cùng thread_id thì
+            Agent nhớ được ngữ cảnh các câu hỏi trước (dùng cho demo
+            Streamlit nhiều người dùng cùng lúc, mỗi người 1 thread_id riêng)
     Output: {"answer": str, "error": str | None}
     """
     try:
-        answer = ask(question)
+        answer = ask(question, thread_id=thread_id)
         return {"answer": answer, "error": None}
     except Exception as e:
         logger.exception("query_candidates lỗi với question=%r", question)

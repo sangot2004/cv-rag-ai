@@ -1,8 +1,15 @@
 import logging
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
-from src.db.models import Candidate, CandidateEducation, CandidateExperience, CandidateSkill
+from src.db.models import (
+    Candidate,
+    CandidateCertificate,
+    CandidateEducation,
+    CandidateExperience,
+    CandidateProject,
+    CandidateSkill
+)
 from src.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -95,4 +102,102 @@ def get_candidate_full_profile(candidate_id: str) -> dict | None:
                 }
                 for e in candidate.education
             ],
+            "certificates": [
+                {
+                    "name": c.name,
+                    "issuer": c.issuer,
+                    "issue_date": str(c.issue_date) if c.issue_date else None,
+                }
+                for c in candidate.certificates
+            ],
+            "project": [
+                {
+                    "name": p.name,
+                    "role": p.role,
+                    "tech_stack": p.tech_stack.split(",") if p.tech_stack else [],
+                    "description": p.description,
+                }
+                for p in candidate.projects
+            ],
         }
+
+
+def get_multiple_candidates_profile(candidate_ids: list[str]) -> list[dict]:
+    """Lấy full profile của nhiều candidate cùng lúc
+    - dùng cho compare"""
+    profiles = []
+    for cid in candidate_ids:
+        profile = get_candidate_full_profile(cid)
+        if profile is not None:
+            profiles.append(profile)
+    return profiles
+
+
+def search_by_certificate(certificate_name: str, limit: int = 20) -> list[dict]:
+    """tìm ứng viên có chứng chỉ khớp tên"""
+    with SessionLocal() as session:
+        query = (
+            select(Candidate)
+            .join(CandidateCertificate)
+            .where(CandidateCertificate.name.ilike(f"{certificate_name}%"))
+            .distinct()
+            .limit(limit)
+        )
+        candidates = session.execute(query).scalar().all()
+        logger.info("search_by_certificate: %r -> %d kết quả", certificate_name, len(candidates))
+        return [
+            {"candidate_id": c.candidate_id, "full_name": c.full_name} for c in candidates
+        ]
+
+
+def search_by_project_tech(tech: str, limit: int = 20) -> list[dict]:
+    """tìm ứng viên từng làm project dùng công nghệ cụ thể"""
+    with SessionLocal() as session:
+        query = (
+            select(Candidate)
+            .join(CandidateProject)
+            .where(CandidateProject.tech_stack.ilike(f"%{tech}"))
+            .distinct()
+            .limit(limit)
+        )
+        candidates = session.execute(query).scalar().all()
+        logger.info("search_by_project_tech: %r -> %d kết quả", tech, len(candidates))
+        return [
+            {"candidate_id:": c.candidate_id, "full_name": c.full_name} for c in candidates
+        ]
+
+
+def count_candidate_stats(
+        skills: list[str] | None = None, min_years_experience: float | None = None
+) -> dict:
+    """Đếm sô lượng ứng viên khớp tiêu chí"""
+    with SessionLocal() as session:
+        query = select(func.count(func.distinct(Candidate.candidate_id)))
+
+        if skills:
+            skills_conditions = [CandidateSkill.skill_name.ilike(f"%{s}") for s in skills]
+            query = query.select_from(Candidate).join(CandidateSkill).where(or_(*skills_conditions))
+        if min_years_experience is not None:
+            query = query.where(Candidate.total_years_experience >= min_years_experience)
+
+        count = session.execute(query).scalar_one()
+        logger.info(
+            "count_candidates_stats: skills=%s min_years=%s -> %d", skills, min_years_experience, count
+        )
+        return {"count": count, "skills": skills, "min_year_experience": min_years_experience}
+
+
+def list_recent_candidates(limit: int = 5) -> list[dict]:
+    """CV mới nộp gần nhất, theo created_at giảm dần"""
+    with SessionLocal() as session:
+        query = select(Candidate).order_by(Candidate.created_at.desc()).limit(limit)
+        candidates = session.execute(query).scalar().all()
+        return [
+            {
+                "candidate_id": c.candidate_id,
+                "full_name": c.full_name,
+                "applied_position": c.applied_position,
+                "created_at": str(c.created_at)
+            }
+            for c in candidates
+        ]

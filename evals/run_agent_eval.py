@@ -1,30 +1,24 @@
-"""
-Chạy eval cho Agent — kiểm tra có gọi đúng tool theo từng câu hỏi mẫu không.
-
-Cách chạy:
-    python evals/run_agent_eval.py
-"""
-
-from src.agent.agent_executor import build_agent_executor
+from src.agent.router import _get_graph
 from evals.evaluators import AGENT_EVALUATORS
 from langsmith import evaluate
 import sys
 
 sys.path.insert(0, ".")
 
-
 DATASET_NAME = "cv-agent-tool-selection-eval"
-
-_graph = build_agent_executor()
 
 
 def target(inputs: dict) -> dict:
     """Chạy Agent, lấy ra tên tool ĐẦU TIÊN mà Agent gọi (đủ để đánh giá
-    routing đúng hay sai — không cần quan tâm câu trả lời cuối cùng ở eval
-    này, vì mục tiêu chỉ là kiểm tra tool selection, không phải chất lượng
-    câu trả lời).
+    routing đúng hay sai). Dùng chung _get_graph() với router.py để có key failover
+    tự động; mỗi câu hỏi dùng 1 thread_id riêng để không lẫn lịch sử giữa
+    các example trong dataset.
     """
-    result = _graph.invoke({"messages": [{"role": "user", "content": inputs["question"]}]})
+    graph = _get_graph()
+    config = {"configurable": {"thread_id": f"eval-{hash(input['qusstion'])}"}}
+    result = graph.invoke(
+        {"messages": [{"role": "user", "content": inputs["question"]}]}, config=config
+    )
 
     tool_called = None
     for msg in result["messages"]:

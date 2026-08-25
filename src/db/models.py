@@ -88,6 +88,12 @@ class Candidate(Base):
     education: Mapped[list["CandidateEducation"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
     )
+    certificates: Mapped[list["CandidateCertificate"]] = relationship(
+        back_populates="candidate", cascade="all, delete-orphan"
+    )
+    projects: Mapped[list["CandidateProject"]] = relationship(
+        back_populates="candidate", cascade="all, delete-orphan"
+    )
     chunks: Mapped[list["CandidateChunk"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
     )

@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.config.settings import get_settings
 from src.evaluation.rubric import DEFAULT_CRITERIA, EvaluationResult
+from src.llm.key_manager import call_with_key_failover
 from src.retrieval.sql_query_tool import get_candidate_full_profile
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,12 @@ Hồ sơ ứng viên (candidate_id={candidate_id}):
 ---"""
 
 
+def _evaluate_call(api_key: str, prompt: str) -> EvaluationResult:
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    structured_llm = llm.with_structured_output(EvaluationResult)
+    return structured_llm.invoke(prompt)
+
+
 def evaluate_candidate(candidate_id: str, job_description: str) -> EvaluationResult | None:
     """đánh giá 1 ứng viên theo jd, dùng rubric cố định để tránh 
     llm chấm điểm cảm tính, không nhất quán giữa các lần gọi."""
@@ -43,8 +50,7 @@ def evaluate_candidate(candidate_id: str, job_description: str) -> EvaluationRes
         profile=profile,
     )
 
-    structured_llm = _llm.with_structured_output(EvaluationResult)
-    result = structured_llm.invoke(prompt)
+    result = call_with_key_failover(lambda key: _evaluate_call(key, prompt))
 
     logger.info(
         "evaluate_candidate candidate_id=%s overall_score=%.1f", candidate_id, result.overall_score

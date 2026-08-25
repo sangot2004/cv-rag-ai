@@ -52,8 +52,8 @@ class Settings:
     @property
     def GOOGLE_API_KEYS(self) -> list[str]:
         keys = []
-        if self.GOOGLE_API_KEYS:
-            keys.append(self.GOOGLE_API_KEYS)
+        if self.GOOGLE_API_KEY:
+            keys.append(self.GOOGLE_API_KEY)
         i = 2
         while True:
             key = os.getenv(f"GOOGLE_API_KEY_{i}")

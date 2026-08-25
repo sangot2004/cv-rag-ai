@@ -1,7 +1,8 @@
 """add candidate_certifivates and candidate_project tables
 Revision ID: 0002
 Revises: 0001
-Create Date: 2026-08-18"""
+Create Date: 2026-08-18
+"""
 
 from alembic import op
 import sqlalchemy as sa

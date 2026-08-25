@@ -19,7 +19,7 @@ def _classify_call(api_key: str, raw_text: str) -> CVClassification:
 
 
 def _extract_call(api_key: str, raw_text: str) -> CVSchema:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, goolge_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
     structured_llm = llm.with_structured_output(CVSchema)
     prompt = EXTRACT_CV_PROMPT.format(text=raw_text)
     return structured_llm.invoke(prompt)

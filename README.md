@@ -113,3 +113,21 @@ docker exec -it cvrag-mysql mysql -uadmin -p123456 cv_rag_db \
 ```
 
 Kiểm tra Qdrant có point chưa: mở `http://localhost:6333/dashboard`, xem collection `cv_chunks`.
+
+## Xoay vòng nhiều Gemini API key (tránh hết quota)
+
+Điền `GOOGLE_API_KEY`, `GOOGLE_API_KEY_2`, `GOOGLE_API_KEY_3`... vào `.env` (mỗi biến 1 key thật khác nhau, tạo trên `aistudio.google.com/apikey`). Hệ thống tự dùng key đầu tiên tới khi gặp lỗi hết quota (HTTP 429) mới tự động chuyển sang key kế tiếp (chiến lược failover, không phải round-robin) — không cần sửa gì thêm, `src/llm/key_manager.py` xử lý tự động cho mọi lời gọi Gemini (extraction, embedding, agent, evaluation).
+
+Chỉ điền 1 key vẫn chạy bình thường — nhiều key chỉ là tùy chọn để tăng tổng quota khả dụng.
+
+## Giao diện demo — Streamlit
+
+```bash
+streamlit run app.py
+```
+
+Mở `http://localhost:8501`, có 3 tab:
+
+- **Hỏi đáp** — chat với Agent, có lưu lịch sử hội thoại trong phiên (hỏi tiếp câu liên quan tới câu trước vẫn hiểu đúng ngữ cảnh)
+- **Đánh giá theo JD** — nhập `candidate_id` + JD, xem điểm chấm theo rubric cố định
+- **Danh sách ứng viên** — browse nhanh, lọc theo kỹ năng, copy `candidate_id` để dùng ở tab Đánh giá

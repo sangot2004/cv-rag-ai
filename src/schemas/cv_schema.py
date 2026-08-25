@@ -11,7 +11,7 @@ class ExperienceItem(BaseModel):
 
 class EducationItem(BaseModel):
     school: str = Field(description="Tên trường")
-    degree: str | None = Field(default=None, description=" Bằng cấp, ví dụ: Cử nhân, Kỹ sư")
+    degree: str | None = Field(default=None, description="Bằng cấp, ví dụ: Cử nhân, Thạc sĩ")
     field: str | None = Field(default=None, description="Chuyên ngành")
     graduation_year: int | None = Field(default=None, description="Năm tốt nghiệp nếu có")
 
@@ -26,7 +26,7 @@ class CertificateItem(BaseModel):
 class ProjectItem(BaseModel):
     name: str = Field(description="Tên dự án")
     role: str | None = Field(default=None, description="Vai trò trong dự án, ví dụ: Backend Developer")
-    tech_stack: list[str] = Field(default=list, description="Công nghệ/ngôn ngữ dùng trong dự án")
+    tech_stack: list[str] = Field(default_factory=list, description="Công nghệ/ngôn ngữ dùng trong dự án")
     description: str | None = Field(
         default=None, description="Mô tả dự án, không bao gồm role/tech_stack đã tách riêng")
     start_date: str | None = Field(default=None, description="YYYY-MM nếu có")
@@ -38,7 +38,7 @@ class CVSchema(BaseModel):
     email: str | None = Field(default=None)
     phone: str | None = Field(default=None)
     applied_position: str | None = Field(
-        default=None, description="Vị trí ứng tuyển nếu cv ghi rõ, hoặc suy luận từ nội dung"
+        default=None, description="Vị trí ứng tuyển nếu CV có ghi rõ, hoặc suy luận từ nội dung"
     )
     total_years_experience: float | None = Field(
         default=None, description="Tổng số năm kinh nghiệm, tự tính từ các mốc thời gian experience"
@@ -53,7 +53,8 @@ class CVSchema(BaseModel):
 
 
 class CVClassification(BaseModel):
-    """Kết quả: phân loại văn bản có phải cv ko, trước khi extract đầy đủ"""
+    """Kết quả bước A5b — phân loại văn bản có phải CV không, trước khi extract đầy đủ."""
+
     is_cv: bool
     confidence: float = Field(ge=0.0, le=1.0)
     reason: str
