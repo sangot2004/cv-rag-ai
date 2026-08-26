@@ -18,6 +18,18 @@ st.title("CV RAG - Demo tra cứu & đánh giá ứng viên")
 
 tab_chat, tab_eval, tab_list = st.tabs(["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🗂️ Danh sách ứng viên"])
 
+
+def extract_answer_text(answer):
+    """Lấy text sạch từ response Agent, bỏ qua phần extras/signature."""
+    if isinstance(answer, list):
+        text_parts = [
+            block["text"] for block in answer
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        return "\n\n".join(text_parts)
+    return str(answer)
+
+
 # tab1 - chat hỏi đáp, có lưu lich sử qua session của trình duyệt
 with tab_chat:
     st.caption(
@@ -32,20 +44,20 @@ with tab_chat:
 
     question = st.chat_input("Nhập câu hỏi...")
     if question:
-        st.session_state.chat_history.append("user", question)
+        st.session_state.chat_history.append(("user", question))
         with st.chat_message("user"):
             st.markdown(question)
 
         with st.chat_message("assistant"):
-            with st.chat_message("Đang tra cứu..."):
+            with st.spinner("Đang tra cứu..."):
                 result = query_candidates(question, thread_id=st.session_state.thread_id)
             if result["error"]:
                 answer = f"⚠️ Có lỗi xảy ra: {result['error']}"
             else:
-                answer = result["answer"]
+                answer = extract_answer_text(result["answer"])
             st.markdown(answer)
 
-        st.session_state.chat_history.append(("assitant", answer))
+        st.session_state.chat_history.append(("assistant", answer))
 
     if st.session_state.chat_history:
         if st.button("🗑️ Xóa lịch sử hội thoại"):

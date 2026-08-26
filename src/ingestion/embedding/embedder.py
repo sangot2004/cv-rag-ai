@@ -31,7 +31,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return call_with_key_failover(lambda key: _embed_call(key, texts, "RETRIEVAL_DOCUMENT"))
 
 
-def embed(text: str) -> list[float]:
+def embed_query(text: str) -> list[float]:
 
     result = call_with_key_failover(lambda key: _embed_call(key, [text], "RETRIEVAL_QUERY"))
     return result[0]

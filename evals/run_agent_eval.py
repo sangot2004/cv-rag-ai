@@ -15,7 +15,7 @@ def target(inputs: dict) -> dict:
     các example trong dataset.
     """
     graph = _get_graph()
-    config = {"configurable": {"thread_id": f"eval-{hash(input['qusstion'])}"}}
+    config = {"configurable": {"thread_id": f"eval-{hash(inputs['question'])}"}}
     result = graph.invoke(
         {"messages": [{"role": "user", "content": inputs["question"]}]}, config=config
     )

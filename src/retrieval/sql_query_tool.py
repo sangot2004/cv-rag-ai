@@ -143,7 +143,7 @@ def search_by_certificate(certificate_name: str, limit: int = 20) -> list[dict]:
             .distinct()
             .limit(limit)
         )
-        candidates = session.execute(query).scalar().all()
+        candidates = session.execute(query).scalars().all()
         logger.info("search_by_certificate: %r -> %d kết quả", certificate_name, len(candidates))
         return [
             {"candidate_id": c.candidate_id, "full_name": c.full_name} for c in candidates
@@ -156,14 +156,14 @@ def search_by_project_tech(tech: str, limit: int = 20) -> list[dict]:
         query = (
             select(Candidate)
             .join(CandidateProject)
-            .where(CandidateProject.tech_stack.ilike(f"%{tech}"))
+            .where(CandidateProject.tech_stack.ilike(f"%{tech}%"))
             .distinct()
             .limit(limit)
         )
-        candidates = session.execute(query).scalar().all()
+        candidates = session.execute(query).scalars().all()
         logger.info("search_by_project_tech: %r -> %d kết quả", tech, len(candidates))
         return [
-            {"candidate_id:": c.candidate_id, "full_name": c.full_name} for c in candidates
+            {"candidate_id": c.candidate_id, "full_name": c.full_name} for c in candidates
         ]
 
 
@@ -191,7 +191,7 @@ def list_recent_candidates(limit: int = 5) -> list[dict]:
     """CV mới nộp gần nhất, theo created_at giảm dần"""
     with SessionLocal() as session:
         query = select(Candidate).order_by(Candidate.created_at.desc()).limit(limit)
-        candidates = session.execute(query).scalar().all()
+        candidates = session.execute(query).scalars().all()
         return [
             {
                 "candidate_id": c.candidate_id,

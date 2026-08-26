@@ -61,10 +61,6 @@ def call_with_key_failover(build_and_call_fn):
     kế tiếp khi gặp lỗi quota, dừng lại re-raise nếu đã thử hết toàn bộ key
     mà vẫn lỗi (hoặc lỗi không phải do quota — không có ý nghĩa gì để đổi
     key trong trường hợp đó, vd lỗi sai model name).
-
-    build_and_call_fn nhận vào 1 api_key (str), tự xây client/model bằng
-    key đó rồi gọi API — PHẢI xây lại client mỗi lần gọi (không dùng client
-    đã cache sẵn từ key cũ), nếu không đổi key sẽ vô nghĩa.
     """
     manager = get_key_manager()
     last_error: Exception | None = None

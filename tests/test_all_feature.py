@@ -8,7 +8,9 @@ from src.agent.tools.search_tool import semantic_search_cv
 from src.agent.tools.sql_filter_tool import filter_candidates_sql
 from src.agent.tools.evaluation_tool import evaluate_candidate_against_jd
 from src.agent.router import ask
+from src.agent.tools.candidate_detail_tool import get_candidate_detail
 from src.interfaces.query_interface import query_candidates, evaluate_candidate_for_job
+
 
 # Cấu hình logging chung
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -167,6 +169,28 @@ def test_query_interface():
     res_eval = evaluate_candidate_for_job(sample_candidate_id, sample_jd)
     print(f"   Kết quả đánh giá trả về cho Backend:\n{res_eval}")
 
+# test agent tool mới
+
+
+def test_candidate_detail_tool():
+    print("\n--- ĐANG CHẠY TEST: Agent Tool - get_candidate_detail ---")
+
+    # 1. Tự động lấy danh sách ứng viên từ SQL tool để lấy đại diện 1 ID có sẵn trong DB
+    results = search_candidates_sql(min_years_experience=0)
+    if not results:
+        print("⚠️ Chưa có candidate nào trong DB để test tool. Hãy ingest CV trước!")
+        return
+
+    # 2. Lấy tự động candidate_id của ứng viên đầu tiên tìm thấy
+    sample_id = results[0]["candidate_id"]
+    sample_name = results[0]["full_name"]
+    print(f"📌 Đã tự động chọn ứng viên: {sample_name} (ID: {sample_id})")
+
+    # 3. Gọi invoke tool
+    print(f"🔍 Đang gọi get_candidate_detail.invoke()...")
+    response = get_candidate_detail.invoke({"candidate_id": sample_id})
+    print(f"💬 Kết quả trả về từ Tool:\n{response}")
+
 
 if __name__ == "__main__":
     # test_sql_retrieval()
@@ -176,4 +200,5 @@ if __name__ == "__main__":
     # test_hybrid_and_rerank()
     # test_agent_tools()
     # test_ai_agent_router()
-    test_query_interface()
+    # test_query_interface()
+    test_candidate_detail_tool()

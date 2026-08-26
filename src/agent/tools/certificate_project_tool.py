@@ -18,6 +18,6 @@ def find_candidates_by_project_tech(tech: str) -> str:
     """tìm ứng viên làm dự án có dùng công nghệ cụ thể"""
     results = search_by_project_tech(tech)
     if not results:
-        return f"Không tìm thấy ứng viên nào có dự án công nghệ '{tech}'."
+        return f"Không tìm thấy ứng viên nào có dự án dùng công nghệ '{tech}'."
     lines = [f"- {r['full_name']} ({r['candidate_id']})" for r in results]
     return "\n".join(lines)

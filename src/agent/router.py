@@ -41,7 +41,7 @@ def ask(question: str, thread_id: str = "default") -> str:
         try:
             graph = _get_graph()
             result = graph.invoke({"messages": [{"role": "user", "content": question}]}, config=config)
-            answer = result["message"][-1].content
+            answer = result["messages"][-1].content
             logger.info("Agent trả lời: %r", str(answer)[:200])
             return answer
         except Exception as e:
