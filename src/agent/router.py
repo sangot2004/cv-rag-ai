@@ -23,14 +23,6 @@ def _get_graph():
 
 
 def ask(question: str, thread_id: str = "default") -> str:
-    """Entrypoint duy nhất cho Luồng C — nhận câu hỏi tiếng Việt tự nhiên,
-    Agent tự quyết định gọi tool nào qua tool-calling của Gemini.
-    thread_id: định danh phiên hội thoại — cùng thread_id thì Agent nhớ
-    được các câu hỏi/trả lời trước đó (qua checkpointer). Streamlit truyền
-    vào session id riêng cho mỗi người dùng.
-    Có failover key: nếu gặp lỗi quota, chuyển key và rebuild graph, thử
-    lại toàn bộ request 1 lần cho mỗi key còn lại.
-    """
     logger.info("Agent nhận câu hỏi (thread_id=%s): %r", thread_id, question)
 
     manager = get_key_manager()

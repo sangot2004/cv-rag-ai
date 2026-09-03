@@ -67,6 +67,9 @@ class Candidate(Base):
     total_years_experience: Mapped[float | None] = mapped_column(FLOAT, nullable=True)
     raw_text: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     content_hash: Mapped[str | None] = mapped_column(CHAR(64), nullable=True)
+    photo_object_key: Mapped[str | None] = mapped_column(
+        VARCHAR(500), nullable=True
+    )
     source_job_id: Mapped[str] = mapped_column(
         CHAR(36), ForeignKey("ingestion_jobs.job_id"), nullable=False
     )

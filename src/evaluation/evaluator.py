@@ -10,7 +10,6 @@ from src.retrieval.sql_query_tool import get_candidate_full_profile
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=settings.GOOGLE_API_KEY)
 
 EVALUATE_PROMPT = """Đánh giá mức độ phù hợp của ứng viên sau với JD, CHỈ dựa trên
 {criteria_list}.
@@ -51,6 +50,7 @@ def evaluate_candidate(candidate_id: str, job_description: str) -> EvaluationRes
     )
 
     result = call_with_key_failover(lambda key: _evaluate_call(key, prompt))
+    result.candidate_id = candidate_id
 
     logger.info(
         "evaluate_candidate candidate_id=%s overall_score=%.1f", candidate_id, result.overall_score

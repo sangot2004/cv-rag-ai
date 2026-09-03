@@ -33,3 +33,26 @@ CV:
 ---
 {text}
 ---"""
+
+
+OCR_CV_IMAGE_PROMPT = """Đây là ảnh chụp/scan 1 hoặc nhiều trang CV (resume).
+Đọc và chép lại TOÀN BỘ text xuất hiện trong ảnh theo đúng thứ tự, giữ
+nguyên cấu trúc dòng/đoạn/mục càng sát bản gốc càng tốt (tên, thông tin
+liên hệ, kinh nghiệm, học vấn, kỹ năng, chứng chỉ, dự án...).
+
+Chỉ trả về text đã đọc được, KHÔNG thêm bình luận, giải thích, hay tóm tắt.
+Nếu có nhiều ảnh (nhiều trang), nối text các trang lại theo đúng thứ tự."""
+
+
+EXTRACT_JD_PROMPT = """Trích xuất thông tin từ Job Description (JD) sau thành
+dữ liệu có cấu trúc. Nếu JD không ghi rõ 1 trường, để None thay vì tự bịa ra
+(ví dụ JD không nói rõ số năm kinh nghiệm thì min_years_experience=None).
+
+required_skills: chỉ liệt kê kỹ năng/công nghệ CỤ THỂ được đề cập là bắt
+buộc hoặc quan trọng, không liệt kê các câu mô tả chung chung ("có tinh
+thần trách nhiệm", "làm việc nhóm tốt").
+
+JD:
+---
+{text}
+---"""

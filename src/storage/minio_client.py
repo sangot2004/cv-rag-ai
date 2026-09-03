@@ -23,7 +23,6 @@ class MinioStorage:
         self._ensure_bucket()
 
     def _ensure_bucket(self) -> None:
-        """Ensure the bucket exists, create it if it doesn't."""
         try:
             if not self.client.bucket_exists(self.bucket):
                 self.client.make_bucket(self.bucket)

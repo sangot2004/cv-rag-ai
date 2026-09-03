@@ -1,11 +1,19 @@
-from src. retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
-from src.interfaces.query_interface import evaluate_candidate_for_job, query_candidates
+from src.storage.minio_client import MinioStorage
+from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
+from src.interfaces.query_interface import (
+    evaluate_candidate_for_job,
+    parse_jd,
+    query_candidates,
+    rank_top_candidates,
+)
+from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
+from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
 import sys
 import uuid
-
 import streamlit as st
 
 sys.path.insert(0, ".")
+
 
 st.set_page_config(page_title="CV RAG - Demo tra cứu ứng viên", layout="wide")
 
@@ -16,7 +24,9 @@ if "chat_history" not in st.session_state:
 
 st.title("CV RAG - Demo tra cứu & đánh giá ứng viên")
 
-tab_chat, tab_eval, tab_list = st.tabs(["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🗂️ Danh sách ứng viên"])
+tab_chat, tab_eval, tab_topk, tab_list = st.tabs(
+    ["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🎯 Top-K theo JD", "🗂️ Danh sách ứng viên"]
+)
 
 
 def extract_answer_text(answer):
@@ -28,6 +38,31 @@ def extract_answer_text(answer):
         ]
         return "\n\n".join(text_parts)
     return str(answer)
+
+
+def get_jd_text_from_input(key_prefix: str) -> str | None:
+    input_mode = st.radio(
+        "Nguồn JD", ["Gõ tay", "Upload file PDF"], key=f"{key_prefix}_mode", horizontal=True
+    )
+
+    if input_mode == "Gõ tay":
+        return st.text_area("Job Description", height=150, key=f"{key_prefix}_text")
+
+    uploaded_file = st.file_uploader("Chọn file JD (.pdf)", type=["pdf"], key=f"{key_prefix}_file")
+    if uploaded_file is None:
+        return None
+    file_bytes = uploaded_file.read()
+    with st.spinner("Đang đọc file PDF..."):
+        text = extract_text_from_pdf(file_bytes)
+        if len(text) < 100:
+            st.info("File có vẻ là scan, đang đọc thử bằng OCR...")
+            images = rasterize_pages(file_bytes)
+            text = ocr_extract_text_from_images(images)
+
+    with st.expander("Xem text đã trích xuất từ PDF"):
+        st.text(text[:2000] + ("..." if len(text) > 2000 else ""))
+
+    return text
 
 
 # tab1 - chat hỏi đáp, có lưu lich sử qua session của trình duyệt
@@ -106,9 +141,57 @@ with tab_eval:
                 st.info(result['summary'])
 
 
-# tab3 - Danh sách ứng viên
+# tab3 - Đánh giá ứng viên theo JD
+with tab_topk:
+    st.caption(
+        "Đưa vào 1 JD, hệ thống tự tìm và chấm điểm những ứng viên phù hợp nhất "
+        "trong toàn bộ hệ thống (lọc trước theo tiêu chí cứng, xếp hạng ngữ nghĩa, "
+        "rồi chấm điểm chi tiết cho top K — có thể mất khoảng chục giây."
+    )
+
+    jd_text_topk = get_jd_text_from_input("topk")
+    top_k = st.slider("Số lượng ứng viên muốn xem (K)", min_value=1, max_value=10, value=5)
+
+    if st.button("Tìm ứng viên phù hợp", type="primary", key="topk_btn"):
+        if not jd_text_topk:
+            st.warning("Cần nhập hoặc upload JD trước.")
+        else:
+            with st.spinner("Đang trích xuất JD..."):
+                jd_parsed = parse_jd(jd_text_topk)
+
+            if "error" in jd_parsed:
+                st.error(jd_parsed["error"])
+            else:
+                st.subheader("JD đã trích xuất")
+                st.json(
+                    {
+                        "position_title": jd_parsed["position_title"],
+                        "required_skills": jd_parsed["required_skills"],
+                        "min_years_experience": jd_parsed["min_years_experience"],
+                        "preferred_education": jd_parsed["preferred_education"],
+                    }
+                )
+
+                with st.spinner(f"Đang xếp hạng và chấm điểm top {top_k} ứng viên..."):
+                    ranking = rank_top_candidates(jd_parsed, top_k=top_k)
+
+                if ranking["error"]:
+                    st.error(ranking["error"])
+                elif not ranking["results"]:
+                    st.info("Không tìm thấy ứng viên nào phù hợp với JD này.")
+                else:
+                    for i, r in enumerate(ranking["results"], 1):
+                        with st.expander(
+                            f"#{i} — {r['candidate_id']} — {r['overall_score']:.1f}/5", expanded=(i <= 3)
+                        ):
+                            for c in r["criteria"]:
+                                st.markdown(f"**{c['criterion']}**: {c['score']}/5 — {c['justification']}")
+                            st.markdown(f"**Tóm tắt:** {r['summary']}")
+
+
+# tab4 - Danh sách ứng viên
 with tab_list:
-    st.caption("Xem nhanh danh sách ứng viên, lọc theo kỹ năng nếu cần")
+    st.caption("Xem nhanh danh sách ứng viên, lọc theo kỹ năng nếu cần.")
 
     skill_filter = st.text_input("Lọc theo kỹ năng (để trống = xem tất cả gần đây)")
 
@@ -121,4 +204,29 @@ with tab_list:
         st.info("Không có ứng viên nào khớp.")
     else:
         st.dataframe(candidates, use_container_width=True)
-        st.caption(f"Hiển thị {len(candidates)} ứng viên. Copy candidate_id để dùng ở tab Đánh giá")
+        st.caption(f"Hiển thị {len(candidates)} ứng viên. Copy candidate_id để dùng ở các tab khác.")
+
+        with st.expander("🖼️ Xem ảnh chân dung (nếu có)"):
+            photo_candidate_id = st.selectbox(
+                "Chọn candidate_id",
+                options=[c["candidate_id"] for c in candidates],
+                format_func=lambda cid: next(
+                    c["full_name"] for c in candidates if c["candidate_id"] == cid
+                ),
+            )
+            if st.button("Tải ảnh", key="load_photo_btn"):
+                # Cần query full profile để lấy photo_object_key — danh sách
+                # rút gọn ở trên không có field này.
+                from src.db.models import Candidate
+                from src.db.session import SessionLocal
+
+                with SessionLocal() as session:
+                    cand = session.get(Candidate, photo_candidate_id)
+                    if cand and cand.photo_object_key:
+                        try:
+                            photo_bytes = MinioStorage().download_bytes(cand.photo_object_key)
+                            st.image(photo_bytes, width=200)
+                        except Exception as e:
+                            st.warning(f"Không tải được ảnh: {e}")
+                    else:
+                        st.info("Ứng viên này không có ảnh chân dung được tách ra.")

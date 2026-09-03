@@ -8,6 +8,7 @@ google-genai>=0.3
 langchain-core>=0.3
 langchain-google-genai>=2.0
 langchain>=1.0
+langgraph>=0.2
 langsmith>=0.10
 minio>=7.2
 pymupdf>=1.24

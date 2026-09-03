@@ -126,8 +126,19 @@ Chỉ điền 1 key vẫn chạy bình thường — nhiều key chỉ là tùy 
 streamlit run app.py
 ```
 
-Mở `http://localhost:8501`, có 3 tab:
+Mở `http://localhost:8501`, có 4 tab:
 
-- **Hỏi đáp** — chat với Agent, có lưu lịch sử hội thoại trong phiên (hỏi tiếp câu liên quan tới câu trước vẫn hiểu đúng ngữ cảnh)
-- **Đánh giá theo JD** — nhập `candidate_id` + JD, xem điểm chấm theo rubric cố định
-- **Danh sách ứng viên** — browse nhanh, lọc theo kỹ năng, copy `candidate_id` để dùng ở tab Đánh giá
+- **Hỏi đáp** — chat với Agent (10 tool), có lưu lịch sử hội thoại trong phiên (hỏi tiếp câu liên quan tới câu trước vẫn hiểu đúng ngữ cảnh)
+- **Đánh giá theo JD** — nhập `candidate_id` + JD (gõ tay hoặc upload PDF), xem điểm chấm theo rubric cố định
+- **Top-K theo JD** — đưa 1 JD vào (gõ tay hoặc PDF), hệ thống tự tìm và chấm điểm chi tiết những ứng viên phù hợp nhất trong toàn hệ thống (tối đa 10 người)
+- **Danh sách ứng viên** — browse nhanh, lọc theo kỹ năng, xem ảnh chân dung (nếu tách được), copy `candidate_id` để dùng ở các tab khác
+
+## CV dạng ảnh scan (OCR fallback)
+
+Nếu PDF không có text layer (CV chụp/scan), hệ thống tự động render trang thành ảnh và gửi cho Gemini (multimodal) đọc chữ, thay vì dùng thư viện OCR riêng. Không cần cấu hình gì thêm — tự kích hoạt khi text extract được quá ngắn (`CV_MIN_TEXT_LENGTH`).
+
+**Ảnh chân dung** cũng được thử tách ra (best-effort, dựa trên heuristic kích thước/tỷ lệ ảnh nhúng trong PDF — không đảm bảo chính xác 100%), lưu vào MinIO (`photos/{candidate_id}.jpg`), đường dẫn lưu ở cột `candidates.photo_object_key`. Không có ảnh cũng không sao — không phải lỗi.
+
+## JD có cấu trúc + Top-K matching
+
+JD (dù gõ tay hay từ PDF) được trích xuất thành dữ liệu có cấu trúc (`JDSchema`: vị trí, kỹ năng bắt buộc, số năm KN tối thiểu) trước khi dùng. Tool `find_top_candidates_for_jd` (Agent) và tab "Top-K theo JD" (Streamlit) dùng dữ liệu này để: lọc cứng bằng SQL trước → xếp hạng ngữ nghĩa (hybrid search + rerank) → chấm điểm chi tiết cho đúng top K (tối đa 10, giới hạn để không tốn quota quá mức).
