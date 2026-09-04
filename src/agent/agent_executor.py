@@ -10,11 +10,13 @@ from src.agent.tools.certificate_project_tool import (
 )
 from src.agent.tools.compare_tool import compare_candidates
 from src.agent.tools.evaluation_tool import evaluate_candidate_against_jd
+from src.agent.tools.jd_matching_tool import find_top_candidates_for_jd
 from src.agent.tools.recent_candidates_tool import list_recent_cvs
 from src.agent.tools.search_tool import semantic_search_cv
 from src.agent.tools.sql_filter_tool import filter_candidates_sql
 from src.agent.tools.stats_tool import count_candidates
 from src.config.settings import get_settings
+
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -39,6 +41,7 @@ _tools = [
     find_candidates_by_certificate,
     find_candidates_by_project_tech,
     list_recent_cvs,
+    find_top_candidates_for_jd,
 ]
 
 

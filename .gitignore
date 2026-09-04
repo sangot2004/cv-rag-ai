@@ -39,11 +39,14 @@ Thumbs.db
 evals/eval_data_template.json
 evals/eval_data.json
 
-
-
-
-# ===== Script test/debug thủ công — không đẩy lên repo chung =====
-test_pipeline.py
 #pdf
 *.pdf
-!tests/**/fixtures/*.pdfcelerybeat-schedule.db
+!tests/**/fixtures/*.pdf
+
+
+celerybeat-schedule.db
+chat_history.db
+chat_history.db-wal
+chat_history.db-shm
+
+

@@ -1,3 +1,5 @@
+from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
+from src.agent.router import get_conversation_messages
 from src.storage.minio_client import MinioStorage
 from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
 from src.interfaces.query_interface import (
@@ -9,7 +11,6 @@ from src.interfaces.query_interface import (
 from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
 from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
 import sys
-import uuid
 import streamlit as st
 
 sys.path.insert(0, ".")
@@ -17,12 +18,41 @@ sys.path.insert(0, ".")
 
 st.set_page_config(page_title="CV RAG - Demo tra cứu ứng viên", layout="wide")
 
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = str(uuid.uuid4())
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+if "active_thread_id" not in st.session_state:
+    st.session_state.active_thread_id = create_conversation()
 
 st.title("CV RAG - Demo tra cứu & đánh giá ứng viên")
+
+with st.sidebar:
+    st.header("💬 Hội thoại")
+
+    if st.button("➕ Cuộc trò chuyện mới", use_container_width=True):
+        st.session_state.active_thread_id = create_conversation()
+        st.rerun()
+
+    st.divider()
+
+    conversations = list_conversations()
+    for conv in conversations:
+        is_active = conv["thread_id"] == st.session_state.active_thread_id
+        col_title, col_delete = st.columns([5, 1])
+        with col_title:
+            if st.button(
+                ("🟢 " if is_active else "") + conv["title"],
+                key=f"conv_{conv['thread_id']}",
+                use_container_width=True,
+            ):
+                st.session_state.active_thread_id = conv["thread_id"]
+                st.rerun()
+        with col_delete:
+            if st.button("🗑️", key=f"del_{conv['thread_id']}"):
+                delete_conversation(conv["thread_id"])
+                if is_active:
+                    st.session_state.active_thread_id = create_conversation()
+                st.rerun()
+
+    if not conversations:
+        st.caption("Chưa có cuộc trò chuyện nào.")
 
 tab_chat, tab_eval, tab_topk, tab_list = st.tabs(
     ["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🎯 Top-K theo JD", "🗂️ Danh sách ứng viên"]
@@ -30,7 +60,6 @@ tab_chat, tab_eval, tab_topk, tab_list = st.tabs(
 
 
 def extract_answer_text(answer):
-    """Lấy text sạch từ response Agent, bỏ qua phần extras/signature."""
     if isinstance(answer, list):
         text_parts = [
             block["text"] for block in answer
@@ -73,32 +102,28 @@ with tab_chat:
         "\"Có bao nhiêu ứng viên trong hệ thống?\""
     )
 
-    for role, content in st.session_state.chat_history:
-        with st.chat_message(role):
-            st.markdown(content)
+    active_thread_id = st.session_state.active_thread_id
+
+    history = get_conversation_messages(active_thread_id)
+    for msg in history:
+        with st.chat_message(msg["role"]):
+            st.markdown(extract_answer_text(msg["content"]))
 
     question = st.chat_input("Nhập câu hỏi...")
     if question:
-        st.session_state.chat_history.append(("user", question))
         with st.chat_message("user"):
             st.markdown(question)
 
         with st.chat_message("assistant"):
             with st.spinner("Đang tra cứu..."):
-                result = query_candidates(question, thread_id=st.session_state.thread_id)
+                result = query_candidates(question, thread_id=active_thread_id)
             if result["error"]:
                 answer = f"⚠️ Có lỗi xảy ra: {result['error']}"
             else:
                 answer = extract_answer_text(result["answer"])
             st.markdown(answer)
 
-        st.session_state.chat_history.append(("assistant", answer))
-
-    if st.session_state.chat_history:
-        if st.button("🗑️ Xóa lịch sử hội thoại"):
-            st.session_state.chat_history = []
-            st.session_state.thread_id = str(uuid.uuid4())
-            st.rerun()
+        st.rerun()
 
 # tab2 - Đánh giá 1 ứng viên theo jd
 

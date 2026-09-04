@@ -202,3 +202,14 @@ class CandidateChunk(Base):
     )
 
     candidate: Mapped["Candidate"] = relationship(back_populates="chunks")
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+
+    thread_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    title: Mapped[str] = mapped_column(VARCHAR(255), nullable=False, default="Cuộc trò chuyện mới")
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DATETIME, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
