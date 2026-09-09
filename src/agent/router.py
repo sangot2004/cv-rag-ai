@@ -1,12 +1,11 @@
 import logging
-import os
 
 from langgraph.checkpoint.sqlite import SqliteSaver
-
 
 from src.agent.agent_executor import build_agent_executor
 from src.chat.conversation_store import touch_conversation
 from src.llm.key_manager import get_key_manager, is_quota_error
+from src.retrieval.access_scope import department_scope
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +48,8 @@ def get_conversation_messages(thread_id: str) -> list[dict]:
     return messages
 
 
-def ask(question: str, thread_id: str = "default") -> str:
-    logger.info("Agent nhận câu hỏi (thread_id=%s): %r", thread_id, question)
+def ask(question: str, thread_id: str = "default", department_id: str | None = None) -> str:
+    logger.info("Agent nhận câu hỏi (thread_id=%s, department_id=%s): %r", thread_id, department_id, question)
 
     manager = get_key_manager()
     config = {"configurable": {"thread_id": thread_id}}
@@ -59,7 +58,10 @@ def ask(question: str, thread_id: str = "default") -> str:
     for attempt in range(manager.num_keys):
         try:
             graph = _get_graph()
-            result = graph.invoke({"messages": [{"role": "user", "content": question}]}, config=config)
+            with department_scope(department_id):
+                result = graph.invoke(
+                    {"messages": [{"role": "user", "content": question}]}, config=config
+                )
             answer = result["messages"][-1].content
             touch_conversation(thread_id, first_message=question)
             logger.info("Agent trả lời: %r", str(answer)[:200])

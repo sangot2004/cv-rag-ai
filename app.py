@@ -1,5 +1,3 @@
-from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
-from src.agent.router import get_conversation_messages
 from src.storage.minio_client import MinioStorage
 from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
 from src.interfaces.query_interface import (
@@ -10,19 +8,25 @@ from src.interfaces.query_interface import (
 )
 from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
 from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
+from src.agent.router import get_conversation_messages
+from src.chat.feedback_store import save_feedback
+from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
 import sys
+
 import streamlit as st
 
 sys.path.insert(0, ".")
 
 
-st.set_page_config(page_title="CV RAG - Demo tra cứu ứng viên", layout="wide")
+st.set_page_config(page_title="CV RAG — Demo tra cứu ứng viên", layout="wide")
 
 if "active_thread_id" not in st.session_state:
     st.session_state.active_thread_id = create_conversation()
 
-st.title("CV RAG - Demo tra cứu & đánh giá ứng viên")
+st.title("CV RAG — Demo tra cứu & đánh giá ứng viên")
 
+
+# sidebar
 with st.sidebar:
     st.header("💬 Hội thoại")
 
@@ -70,6 +74,11 @@ def extract_answer_text(answer):
 
 
 def get_jd_text_from_input(key_prefix: str) -> str | None:
+    """Widget dùng chung cho tab Đánh giá và tab Top-K: cho phép gõ tay
+    HOẶC upload PDF. Nếu upload PDF, tự extract text — thử text layer
+    trước, nếu quá ngắn (nghi ngờ scan) thì fallback OCR qua Gemini vision,
+    dùng lại đúng logic đã áp dụng cho CV ở pipeline.py.
+    """
     input_mode = st.radio(
         "Nguồn JD", ["Gõ tay", "Upload file PDF"], key=f"{key_prefix}_mode", horizontal=True
     )
@@ -80,11 +89,12 @@ def get_jd_text_from_input(key_prefix: str) -> str | None:
     uploaded_file = st.file_uploader("Chọn file JD (.pdf)", type=["pdf"], key=f"{key_prefix}_file")
     if uploaded_file is None:
         return None
+
     file_bytes = uploaded_file.read()
     with st.spinner("Đang đọc file PDF..."):
         text = extract_text_from_pdf(file_bytes)
-        if len(text) < 100:
-            st.info("File có vẻ là scan, đang đọc thử bằng OCR...")
+        if len(text) < 100:  # ngưỡng đơn giản, không cần chính xác như CV_MIN_TEXT_LENGTH
+            st.info("File có vẻ là ảnh scan, đang thử đọc bằng OCR...")
             images = rasterize_pages(file_bytes)
             text = ocr_extract_text_from_images(images)
 
@@ -94,7 +104,7 @@ def get_jd_text_from_input(key_prefix: str) -> str | None:
     return text
 
 
-# tab1 - chat hỏi đáp, có lưu lich sử qua session của trình duyệt
+# TAB 1 — Chat hỏi đáp
 with tab_chat:
     st.caption(
         "Hỏi tự nhiên bằng tiếng Việt — ví dụ: "
@@ -105,9 +115,21 @@ with tab_chat:
     active_thread_id = st.session_state.active_thread_id
 
     history = get_conversation_messages(active_thread_id)
-    for msg in history:
+    for i, msg in enumerate(history):
         with st.chat_message(msg["role"]):
             st.markdown(extract_answer_text(msg["content"]))
+
+            if msg["role"] == "assistant":
+                paired_question = history[i - 1]["content"] if i > 0 else ""
+                col_up, col_down, _ = st.columns([1, 1, 10])
+                with col_up:
+                    if st.button("👍", key=f"up_{active_thread_id}_{i}"):
+                        save_feedback(active_thread_id, paired_question, msg["content"], "up")
+                        st.toast("Cảm ơn phản hồi!")
+                with col_down:
+                    if st.button("👎", key=f"down_{active_thread_id}_{i}"):
+                        save_feedback(active_thread_id, paired_question, msg["content"], "down")
+                        st.toast("Đã ghi nhận, cảm ơn phản hồi!")
 
     question = st.chat_input("Nhập câu hỏi...")
     if question:
@@ -125,18 +147,14 @@ with tab_chat:
 
         st.rerun()
 
-# tab2 - Đánh giá 1 ứng viên theo jd
-
+# TAB 2 — Đánh giá 1 ứng viên theo JD
 with tab_eval:
-    st.caption("Nhập candidate_id (xem ở tab Danh sách ứng viên) và JD để chấm điểm")
+    st.caption("Nhập candidate_id (xem ở tab Danh sách ứng viên) và JD để chấm điểm.")
 
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        candidate_id = st.text_input("Candidate ID")
-    with col2:
-        jd_text = st.text_area("Job Description", height=150)
+    candidate_id = st.text_input("Candidate ID", key="eval_candidate_id")
+    jd_text = get_jd_text_from_input("eval")
 
-    if st.button("Đánh giá", type="primary"):
+    if st.button("Đánh giá", type="primary", key="eval_btn"):
         if not candidate_id or not jd_text:
             st.warning("Cần nhập đủ Candidate ID và JD.")
         else:
@@ -163,10 +181,10 @@ with tab_eval:
                         st.markdown(f"- {c}")
 
                 st.subheader("Tóm tắt")
-                st.info(result['summary'])
+                st.info(result["summary"])
 
 
-# tab3 - Đánh giá ứng viên theo JD
+# TAB 3 — Top-K ứng viên phù hợp nhất với 1 JD
 with tab_topk:
     st.caption(
         "Đưa vào 1 JD, hệ thống tự tìm và chấm điểm những ứng viên phù hợp nhất "
@@ -214,7 +232,7 @@ with tab_topk:
                             st.markdown(f"**Tóm tắt:** {r['summary']}")
 
 
-# tab4 - Danh sách ứng viên
+# TAB 4 — Danh sách ứng viên
 with tab_list:
     st.caption("Xem nhanh danh sách ứng viên, lọc theo kỹ năng nếu cần.")
 

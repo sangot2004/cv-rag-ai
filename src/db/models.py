@@ -56,6 +56,28 @@ class IngestionJob(Base):
     __table_args__ = (Index("idx_jobs_status", "status"),)
 
 
+class Department(Base):
+    __tablename__ = "departments"
+
+    department_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    department_name: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
+
+
+class JobPosting(Base):
+    __tablename__ = "job_postings"
+
+    posting_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    department_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("departments.department_id"), nullable=False
+    )
+    position_title: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DATETIME, default=lambda: datetime.now(timezone.utc))
+
+    department: Mapped["Department"] = relationship()
+
+
 class Candidate(Base):
     __tablename__ = "candidates"
 
@@ -70,6 +92,9 @@ class Candidate(Base):
     photo_object_key: Mapped[str | None] = mapped_column(
         VARCHAR(500), nullable=True
     )
+    posting_id: Mapped[str | None] = mapped_column(
+        CHAR(36), ForeignKey("job_postings.posting_id"), nullable=True
+    )
     source_job_id: Mapped[str] = mapped_column(
         CHAR(36), ForeignKey("ingestion_jobs.job_id"), nullable=False
     )
@@ -81,6 +106,8 @@ class Candidate(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    posting: Mapped["JobPosting | None"] = relationship(viewonly=True)
 
     skills: Mapped[list["CandidateSkill"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
@@ -213,3 +240,18 @@ class ChatConversation(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DATETIME, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+
+class ChatFeedback(Base):
+    __tablename__ = "chat_feedback"
+
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    thread_id: Mapped[str] = mapped_column(CHAR(36), nullable=False)
+    question: Mapped[str] = mapped_column(TEXT, nullable=False)
+    answer: Mapped[str] = mapped_column(TEXT, nullable=False)
+    feedback: Mapped[str] = mapped_column(VARCHAR(10), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DATETIME, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (Index("idx_chat_feedback_thread", "thread_id"),)

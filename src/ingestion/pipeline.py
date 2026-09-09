@@ -24,8 +24,10 @@ from src.ingestion.parsers.pdf_parser import (
     extract_portrait_photo,
     rasterize_pages,
 )
+from src.retrieval.department_store import match_posting_for_position
 from src.storage.minio_client import MinioStorage
 from src.vectorstore.qdrant_client import QdrantStore
+
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -129,6 +131,12 @@ def run_ingestion_pipeline(job_id: str) -> str:
             # năng phụ (best-effort), CV vẫn xử lý bình thường không có ảnh.
             logger.exception("Lỗi khi tách/upload ảnh chân dung, bỏ qua (không chặn job)")
 
+        posting_id = None
+        try:
+            posting_id = match_posting_for_position(cv_data.applied_position)
+        except Exception:
+            logger.exception("Lỗi khi match posting, bỏ qua (không chặn job)")
+
         candidate = Candidate(
             candidate_id=candidate_id,
             full_name=cv_data.full_name,
@@ -140,6 +148,7 @@ def run_ingestion_pipeline(job_id: str) -> str:
             content_hash=text_hash,
             source_job_id=job_id,
             photo_object_key=photo_object_key,
+            posting_id=posting_id,
         )
         session.add(candidate)
 

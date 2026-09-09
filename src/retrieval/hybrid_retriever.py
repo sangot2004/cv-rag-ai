@@ -2,6 +2,7 @@ import logging
 
 from src.ingestion.embedding.embedder import embed_query
 from src.retrieval.bm25_index import search_bm25
+from src.retrieval.sql_query_tool import get_allowed_candidate_ids
 from src.vectorstore.qdrant_client import QdrantStore
 
 logger = logging.getLogger(__name__)
@@ -35,10 +36,6 @@ def hybrid_search(
     vector_weight cao hơn mặc định vì embedding thường cho kết quả liên
     quan hơn với câu hỏi tự nhiên của HR — có thể tune lại sau khi có dữ
     liệu đánh giá thật (Luồng E).
-
-    Tự viết merge thay vì dùng LangChain EnsembleRetriever, vì BM25 giờ
-    build định kỳ qua Celery (không phải BM25Retriever.from_documents() tại
-    chỗ theo interface BaseRetriever chuẩn của LangChain).
     """
     query_vector = embed_query(query)
     vector_results = QdrantStore().search(query_vector, top_k=top_k * 2, candidate_id=candidate_id)
@@ -68,6 +65,13 @@ def hybrid_search(
             }
 
     ranked = sorted(merged.values(), key=lambda x: x["combined_score"], reverse=True)[:top_k]
+    allowed_ids = get_allowed_candidate_ids()
+    if allowed_ids is not None:
+        before = len(ranked)
+        ranked = [r for r in ranked if r["payload"].get("candidate_id") in allowed_ids]
+        logger.info("hybrid_search: lọc theo department scope %d -> %d kết quả", before, len(ranked))
+
+    ranked = ranked[:top_k]
     logger.info(
         "hybrid_search query=%r ->%d vector + %d bm25 -> %d merged",
         query, len(vector_results), len(bm25_results), len(ranked),

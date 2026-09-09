@@ -14,6 +14,7 @@ langsmith>=0.10
 minio>=7.2
 pymupdf>=1.24
 pymysql>=1.1
+pytest>=8.0
 python-dotenv>=1.0
 qdrant-client>=1.12
 rank-bm25>=0.2

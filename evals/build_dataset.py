@@ -1,15 +1,3 @@
-"""
-Đọc evals/eval_data.json (copy từ eval_data_template.json, tự điền CV thật +
-đáp án đúng) rồi upload lên LangSmith Dataset. Idempotent — chạy lại nhiều
-lần sẽ tạo thêm example mới, KHÔNG tự xóa example cũ đã có trên LangSmith
-(muốn xóa thì tự vào UI LangSmith xóa tay).
-
-Cách chạy:
-    cp evals/eval_data_template.json evals/eval_data.json
-    # tự điền CV thật + đáp án đúng vào eval_data.json
-    python evals/build_dataset.py
-"""
-
 from langsmith import Client
 import json
 import sys
@@ -31,7 +19,7 @@ def main():
 
     client = Client()
 
-    # ---- Dataset 1: Extraction ----
+    #  Dataset 1: Extraction
     extraction_examples = [
         ex for ex in data["extraction_examples"] if "_comment" not in ex
     ]
@@ -52,7 +40,7 @@ def main():
     else:
         print("Không có extraction_examples hợp lệ (còn để nguyên template?) — bỏ qua.")
 
-    # ---- Dataset 2: Agent tool selection ----
+    # Dataset 2: Agent tool selection
     agent_examples = [ex for ex in data["agent_examples"] if "_comment" not in ex]
     if agent_examples:
         if not client.has_dataset(dataset_name=AGENT_DATASET_NAME):

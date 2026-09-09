@@ -8,11 +8,44 @@ from src.db.models import (
     CandidateEducation,
     CandidateExperience,
     CandidateProject,
-    CandidateSkill
+    CandidateSkill,
+    JobPosting,
 )
 from src.db.session import SessionLocal
+from src.retrieval.access_scope import current_department_id
+from src.retrieval.skill_normalizer import expand_search_terms
 
 logger = logging.getLogger(__name__)
+
+
+def _apply_department_scope(query):
+    department_id = current_department_id.get()
+    if department_id is None:
+        return query
+    return query.join(JobPosting, Candidate.posting_id == JobPosting.posting_id).where(
+        JobPosting.department_id == department_id
+    )
+
+
+def get_allowed_candidate_ids() -> set[str] | None:
+    department_id = current_department_id.get()
+    if department_id is None:
+        return None
+
+    with SessionLocal() as session:
+        query = select(Candidate.candidate_id).join(
+            JobPosting, Candidate.posting_id == JobPosting.posting_id
+        ).where(JobPosting.department_id == department_id)
+        return {row[0] for row in session.execute(query).all()}
+
+
+def _is_candidate_allowed(candidate: Candidate) -> bool:
+    department_id = current_department_id.get()
+    if department_id is None:
+        return True
+    if candidate.posting is None:
+        return False
+    return candidate.posting.department_id == department_id
 
 
 def search_candidates_sql(
@@ -31,8 +64,11 @@ def search_candidates_sql(
         query = select(Candidate).distinct()
 
         if skills:
+            all_terms: list[str] = []
+            for s in skills:
+                all_terms.extend(expand_search_terms(s))
             skill_conditions = [
-                CandidateSkill.skill_name.ilike(f"%{s}%") for s in skills
+                CandidateSkill.skill_name.ilike(f"%{t}%") for t in all_terms
             ]
             query = query.join(CandidateSkill).where(or_(*skill_conditions))
         if min_years_experience is not None:
@@ -47,6 +83,7 @@ def search_candidates_sql(
             )
 
         query = query.limit(limit)
+        query = _apply_department_scope(query)
         candidates = session.execute(query).scalars().all()
 
         logger.info(
@@ -73,6 +110,13 @@ def get_candidate_full_profile(candidate_id: str) -> dict | None:
     with SessionLocal() as session:
         candidate = session.get(Candidate, candidate_id)
         if candidate is None:
+            return None
+
+        if not _is_candidate_allowed(candidate):
+            logger.warning(
+                "get_candidate_full_profile: candidate_id=%s bị chặn do ngoài department scope",
+                candidate_id,
+            )
             return None
 
         return {
@@ -153,10 +197,12 @@ def search_by_certificate(certificate_name: str, limit: int = 20) -> list[dict]:
 def search_by_project_tech(tech: str, limit: int = 20) -> list[dict]:
     """tìm ứng viên từng làm project dùng công nghệ cụ thể"""
     with SessionLocal() as session:
+        terms = expand_search_terms(tech)
+        tech_conditions = [CandidateProject.tech_stack.ilike(f"%{t}%") for t in terms]
         query = (
             select(Candidate)
             .join(CandidateProject)
-            .where(CandidateProject.tech_stack.ilike(f"%{tech}%"))
+            .where(or_(*tech_conditions))
             .distinct()
             .limit(limit)
         )
@@ -175,11 +221,15 @@ def count_candidate_stats(
         query = select(func.count(func.distinct(Candidate.candidate_id)))
 
         if skills:
-            skills_conditions = [CandidateSkill.skill_name.ilike(f"%{s}") for s in skills]
+            all_terms = list[str] = []
+            for s in skills:
+                all_terms.extend(expand_search_terms(s))
+            skills_conditions = [CandidateSkill.skill_name.ilike(f"%{t}") for t in all_terms]
             query = query.select_from(Candidate).join(CandidateSkill).where(or_(*skills_conditions))
         if min_years_experience is not None:
             query = query.where(Candidate.total_years_experience >= min_years_experience)
 
+        query = _apply_department_scope(query)
         count = session.execute(query).scalar_one()
         logger.info(
             "count_candidates_stats: skills=%s min_years=%s -> %d", skills, min_years_experience, count
@@ -191,6 +241,7 @@ def list_recent_candidates(limit: int = 5) -> list[dict]:
     """CV mới nộp gần nhất, theo created_at giảm dần"""
     with SessionLocal() as session:
         query = select(Candidate).order_by(Candidate.created_at.desc()).limit(limit)
+        query = _apply_department_scope(query)
         candidates = session.execute(query).scalars().all()
         return [
             {
