@@ -13,9 +13,11 @@ from src.config.settings import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# xin quyền đọc + đánh dấu đã đọc/ gán nhãn, k cân quyền gửi mail
-
-SCOPE = ["https://www.googleapis.com/auth/gmail.modify"]
+# gmail.modify: xin quyền đọc + đánh dấu đã đọc/ gán nhãn, k cân quyền gửi mail
+# gmail.send: gửi mail phỏng vấn
+SCOPES = ["https://www.googleapis.com/auth/gmail.modify",
+          "https://www.googleapis.com/auth/gmail.send",
+          ]
 
 
 @dataclass
@@ -45,7 +47,7 @@ class GmailClient:
         token_path = settings.GMAIL_TOKEN_PATH
 
         try:
-            creds = Credentials.from_authorized_user_file(token_path, SCOPE)
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         except FileNotFoundError:
             creds = None
 
@@ -54,7 +56,7 @@ class GmailClient:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    settings.GMAIL_CREDENTIALS_PATH, SCOPE
+                    settings.GMAIL_CREDENTIALS_PATH, SCOPES
                 )
                 creds = flow.run_local_server(port=0)
             with open(token_path, 'w') as f:
@@ -63,13 +65,18 @@ class GmailClient:
 
     def list_new_messages(self, max_results: int = 20) -> list[str]:
         query = settings.GMAIL_POLL_QUERY
+        logger.info("Gmail query: %r", query)
+
         result = (
             self.service.users()
             .messages()
             .list(userId="me", q=query, maxResults=max_results)
             .execute()
         )
+
         messages = result.get("messages", [])
+        logger.info("Gmail API trả về %d message khớp query", len(messages))
+
         return [m["id"] for m in messages]
 
     def fetch_message_with_attachments(self, message_id: str) -> EmailMessage:
@@ -85,6 +92,7 @@ class GmailClient:
         subject = headers.get("Subject", "")
 
         attachments = self._extract_attachments(message_id, msg["payload"])
+
         return EmailMessage(
             message_id=message_id, sender=sender, subject=subject, attachments=attachments
         )
@@ -134,3 +142,16 @@ class GmailClient:
                 )
             else:
                 raise
+
+    def send_message(self, to: str, subject: str, body_text: str) -> str:
+        """Gửi 1 mail qua mail đang dùng để nhận cv"""
+        import email.mime.text
+
+        message = email.mime.text.MIMEText(body_text, "plain", "utf-8")
+        message["to"] = to
+        message["subject"] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+        sent = self.service.users().messages().send(userId="me", body={"raw": raw}).execute()
+
+        logger.info("Đã gửi email tới %s, message_id=%s", to, sent["id"])
+        return sent["id"]

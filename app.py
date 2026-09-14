@@ -11,6 +11,9 @@ from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
 from src.agent.router import get_conversation_messages
 from src.chat.feedback_store import save_feedback
 from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
+from src.notification.email_drafter import draft_interview_email
+from src.notification.email_sender import has_already_sent, send_interview_invitation
+
 import sys
 
 import streamlit as st
@@ -58,8 +61,8 @@ with st.sidebar:
     if not conversations:
         st.caption("Chưa có cuộc trò chuyện nào.")
 
-tab_chat, tab_eval, tab_topk, tab_list = st.tabs(
-    ["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🎯 Top-K theo JD", "🗂️ Danh sách ứng viên"]
+tab_chat, tab_eval, tab_topk, tab_email, tab_list = st.tabs(
+    ["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🎯 Top-K theo JD", "✉️ Gửi thư mời", "🗂️ Danh sách ứng viên"]
 )
 
 
@@ -232,7 +235,56 @@ with tab_topk:
                             st.markdown(f"**Tóm tắt:** {r['summary']}")
 
 
-# TAB 4 — Danh sách ứng viên
+# TAB 4 — Gửi thư mời phỏng vấn
+with tab_email:
+    st.caption(
+        "Soạn nội dung tự động, bạn xem/sửa lại trước khi gửi thật. "
+        "Email được gửi từ chính hộp mail HR đang dùng nhận CV."
+    )
+
+    email_candidate_id = st.text_input("Candidate ID", key="email_candidate_id")
+    email_position = st.text_input("Vị trí phỏng vấn", key="email_position")
+    email_interview_details = st.text_area(
+        "Chi tiết phỏng vấn (thời gian, địa điểm, hình thức...)",
+        key="email_interview_details",
+        help="Để trống nếu chưa chốt — hệ thống sẽ không tự bịa thông tin cụ thể.",
+    )
+
+    if st.button("📝 Soạn nháp", key="draft_email_btn"):
+        if not email_candidate_id or not email_position:
+            st.warning("Cần nhập Candidate ID và Vị trí phỏng vấn.")
+        else:
+            with st.spinner("Đang soạn..."):
+                draft = draft_interview_email(email_candidate_id, email_position, email_interview_details)
+            if draft is None:
+                st.error("Không tìm thấy candidate_id này hoặc bạn không có quyền xem.")
+            else:
+                st.session_state.draft_subject = draft.subject
+                st.session_state.draft_body = draft.body
+
+    if "draft_subject" in st.session_state:
+        st.divider()
+
+        if has_already_sent(email_candidate_id):
+            st.warning("⚠️ Candidate này ĐÃ từng được gửi email mời trước đó. Kiểm tra kỹ trước khi gửi lại.")
+
+        subject_input = st.text_input("Subject", value=st.session_state.draft_subject, key="final_subject")
+        body_input = st.text_area("Nội dung", value=st.session_state.draft_body, height=250, key="final_body")
+
+        confirm = st.checkbox("Tôi đã kiểm tra kỹ nội dung và xác nhận gửi email này")
+
+        if st.button("📧 Gửi email", type="primary", disabled=not confirm):
+            with st.spinner("Đang gửi..."):
+                result = send_interview_invitation(email_candidate_id, subject_input, body_input)
+            if result["success"]:
+                st.success(f"Đã gửi thành công! (message_id: {result['message_id']})")
+                del st.session_state.draft_subject
+                del st.session_state.draft_body
+            else:
+                st.error(f"Gửi thất bại: {result['error']}")
+
+
+# TAB 5 — Danh sách ứng viên
 with tab_list:
     st.caption("Xem nhanh danh sách ứng viên, lọc theo kỹ năng nếu cần.")
 

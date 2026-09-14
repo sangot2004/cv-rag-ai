@@ -255,3 +255,21 @@ class ChatFeedback(Base):
     )
 
     __table_args__ = (Index("idx_chat_feedback_thread", "thread_id"),)
+
+
+class SentEmail(Base):
+    __tablename__ = "sent_emails"
+
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    candidate_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False
+    )
+    recipient_email: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    subject: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
+    body: Mapped[str] = mapped_column(TEXT, nullable=False)
+    gmail_message_id: Mapped[str | None] = mapped_column(VARCHAR(100), nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(
+        DATETIME, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (Index("idx_sent_emails_candidate", "candidate_id"),)
