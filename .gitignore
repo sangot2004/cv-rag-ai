@@ -43,7 +43,7 @@ evals/eval_data.json
 *.pdf
 !tests/**/fixtures/*.pdf
 
-
+#db
 celerybeat-schedule.db
 chat_history.db
 chat_history.db-wal

@@ -1,6 +1,7 @@
 import logging
 
 from src.agent.router import ask
+from src.agent.router import resume as _router_resume
 from src.evaluation.evaluator import evaluate_candidate
 from src.ingestion.extraction.llm_extractor import extract_jd_data
 from src.retrieval.candidate_ranking import rank_candidates_for_jd
@@ -8,13 +9,29 @@ from src.retrieval.candidate_ranking import rank_candidates_for_jd
 logger = logging.getLogger(__name__)
 
 
-def query_candidates(question: str, thread_id: str = "default") -> dict:
+def query_candidates(question: str, thread_id: str = "default", department_id: str | None = None) -> dict:
     try:
-        answer = ask(question, thread_id=thread_id)
-        return {"answer": answer, "error": None}
+        response = ask(question, thread_id=thread_id, department_id=department_id)
+        return {**response, "error": None}
     except Exception as e:
         logger.exception("query_candidates lỗi với question=%r", question)
-        return {"answer": None, "error": str(e)}
+        return {"type": "error", "content": None, "error": str(e)}
+
+
+def resume_confirmation(
+        thread_id: str,
+        confirmed: bool,
+        edited_criteria: dict | None = None,
+        department_id: str | None = None,
+) -> dict:
+    try:
+        response = _router_resume(
+            thread_id, confirmed=confirmed, edited_criteria=edited_criteria, department_id=department_id
+        )
+        return {**response, "error": None}
+    except Exception as e:
+        logger.exception("resume_confirmation lỗi")
+        return {"type": "error", "content": None, "error": str(e)}
 
 
 def evaluate_candidate_for_job(candidate_id: str, job_description: str) -> dict:

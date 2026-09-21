@@ -13,6 +13,7 @@ celery_app = Celery(
     include=[
         "src.workers.tasks_ingestion",
         "src.workers.tasks_retrieval",
+        "src.workers.tasks_notification",
     ],
 )
 

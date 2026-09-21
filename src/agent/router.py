@@ -1,6 +1,7 @@
 import logging
 
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.types import Command
 
 from src.agent.agent_executor import build_agent_executor
 from src.chat.conversation_store import touch_conversation
@@ -48,7 +49,30 @@ def get_conversation_messages(thread_id: str) -> list[dict]:
     return messages
 
 
-def ask(question: str, thread_id: str = "default", department_id: str | None = None) -> str:
+def has_pending_confirmation(thread_id: str) -> dict | None:
+    config = {"configurable": {"thread_id": thread_id}}
+    try:
+        state = _get_graph().get_state(config)
+    except Exception:
+        return None
+
+    if state and state.tasks:
+        for task in state.tasks:
+            if task.interrupts:
+                return task.interrupts[0].value
+    return None
+
+
+def _build_response(result: dict) -> dict:
+    if "__interrupt__" in result:
+        interrupt_obj = result["__interrupt__"][0]
+        return {"type": "confirmation_required", "payload": interrupt_obj.value}
+
+    answer = result["messages"][-1].content
+    return {"type": "answer", "content": answer}
+
+
+def ask(question: str, thread_id: str = "default", department_id: str | None = None) -> dict:
     logger.info("Agent nhận câu hỏi (thread_id=%s, department_id=%s): %r", thread_id, department_id, question)
 
     manager = get_key_manager()
@@ -62,14 +86,50 @@ def ask(question: str, thread_id: str = "default", department_id: str | None = N
                 result = graph.invoke(
                     {"messages": [{"role": "user", "content": question}]}, config=config
                 )
-            answer = result["messages"][-1].content
-            touch_conversation(thread_id, first_message=question)
-            logger.info("Agent trả lời: %r", str(answer)[:200])
-            return answer
+            response = _build_response(result)
+
+            if response["type"] == "answer":
+                touch_conversation(thread_id, first_message=question)
+
+            logger.info("Agent response type=%s", response["type"])
+            return response
         except Exception as e:
             last_error = e
             if is_quota_error(e) and attempt < manager.num_keys - 1:
                 manager.mark_exhausted()
                 continue
             raise
+    raise last_error
+
+
+def resume(
+        thread_id: str,
+        confirmed: bool,
+        edited_criteria: dict | None = None,
+        department_id: str | None = None,
+) -> dict:
+    manager = get_key_manager()
+    config = {"configurable": {"thread_id": thread_id}}
+    resume_value = {"confirmed": confirmed, "edited_criteria": edited_criteria}
+    last_error: Exception | None = None
+
+    for attempt in range(manager.num_keys):
+        try:
+            graph = _get_graph()
+            with department_scope(department_id):
+                result = graph.invoke(Command(resume=resume_value), config=config)
+            response = _build_response(result)
+
+            if response["type"] == "answer":
+                touch_conversation(thread_id)
+
+            logger.info("Resume response type=%s", response["type"])
+            return response
+        except Exception as e:
+            last_error = e
+            if is_quota_error(e) and attempt < manager.num_keys - 1:
+                manager.mark_exhausted()
+                continue
+            raise
+
     raise last_error

@@ -4,7 +4,7 @@
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # chỉnh MYSQL_CONN cho khớp docker-compose ở bước trước
+cp .env.example .env
 ```
 
 ## Chạy migration (cần MySQL đang chạy — xem docker-compose.yml đã tạo trước đó)
@@ -20,7 +20,7 @@ alembic current
 alembic history
 ```
 
-## Tạo migration mới sau này (khi sửa models.py)
+## Tạo migration mới
 
 ```bash
 alembic revision --autogenerate -m "mo ta thay doi"
@@ -46,7 +46,7 @@ alembic upgrade head
 python scripts/poll_gmail_intake.py
 ```
 
-### Chạy định kỳ — dùng Celery Beat (khuyến nghị, thay cho cron)
+### Chạy định kỳ — dùng Celery Beat
 
 Cần 3 process chạy song song (3 terminal riêng, hoặc 3 service riêng khi lên Docker sau này):
 
@@ -58,7 +58,7 @@ celery -A src.workers.celery_app worker --loglevel=info
 celery -A src.workers.celery_app beat --loglevel=info
 ```
 
-Không cần chạy `scripts/poll_gmail_intake.py` bằng tay hay cấu hình cron ngoài hệ điều hành nữa — Beat tự động gọi `poll_email_intake` mỗi 2 phút (cấu hình trong `src/workers/celery_app.py`, đổi lịch bằng cách sửa `crontab(minute="*/2")`).
+Không cần chạy `scripts/poll_gmail_intake.py` thủ công hay cấu hình cron ngoài hệ điều hành nữa — Beat tự động gọi `poll_email_intake` mỗi 5 phút (cấu hình trong `src/workers/celery_app.py`, đổi lịch bằng cách sửa `crontab(minute="*/2")`).
 
 `scripts/poll_gmail_intake.py` vẫn giữ lại để chạy tay/debug nhanh khi cần, không phụ thuộc Celery.
 
@@ -72,8 +72,6 @@ Mặc định: `HoTen_ViTriUngTuyen_CV.pdf` (chỉnh qua `CV_FILENAME_PATTERN` t
 File sai tên/định dạng sẽ bị ghi vào `ingestion_jobs` với `status='rejected'` kèm `error_message`, không tốn resource xử lý tiếp.
 
 ## Luồng A + B — Parsing, Extraction, Chunking, Indexing
-
-Toàn bộ dùng **Gemini** (miễn phí) cho cả LLM extraction lẫn Embedding — không dùng Claude/Anthropic ở phần này.
 
 ### Setup lần đầu
 
@@ -96,8 +94,6 @@ Load file MinIO -> Parse PDF (PyMuPDF) -> Check text hợp lệ
   -> Build Document theo section -> Embed (gemini-embedding-001, 768 chiều) -> Upsert Qdrant
   -> status = 'indexed'
 ```
-
-**Lưu ý về model:** cố tình KHÔNG dùng `gemini-2.5-flash`/`gemini-2.5-flash-lite` dù đang miễn phí, vì Google sẽ shutdown 2 model này vào 16/10/2026 — dùng thế hệ `gemini-3.5-flash` / `gemini-3.5-flash-lite` để khỏi phải đổi model giữa chừng dự án.
 
 ### Retry / DLQ
 
@@ -200,9 +196,9 @@ Chạy qua đúng bộ validate 5 cửa + dedupe content hash, dùng chung `proc
 
 ## Gửi email mời phỏng vấn — có xác nhận người, không tự động
 
-Agent (chat) CHỈ soạn nháp nội dung (tool `draft_interview_invitation`), KHÔNG BAO GIỜ tự gửi email thật — kể cả khi HR yêu cầu trực tiếp trong chat. Gửi thật phải qua tab riêng **"✉️ Gửi thư mời"**: soạn nháp → HR xem/sửa → tick xác nhận → bấm gửi.
+Agent (chat) CHỈ soạn nháp nội dung (tool `draft_interview_invitation`), KHÔNG tự gửi email thật — kể cả khi HR yêu cầu trực tiếp trong chat. Gửi thật phải qua tab riêng **"✉️ Gửi thư mời"**: soạn nháp → HR xem/sửa → tick xác nhận → bấm gửi.
 
-**Cần re-auth Gmail** vì đã thêm scope `gmail.send` (trước chỉ có `gmail.modify`):
+**Cần re-auth Gmail** thêm scope `gmail.send`:
 
 ```bash
 rm token.json

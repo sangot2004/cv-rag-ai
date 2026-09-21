@@ -268,8 +268,16 @@ class SentEmail(Base):
     subject: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
     body: Mapped[str] = mapped_column(TEXT, nullable=False)
     gmail_message_id: Mapped[str | None] = mapped_column(VARCHAR(100), nullable=True)
+    status: Mapped[str] = mapped_column(VARCHAR(20), nullable=False, default="success")  # success / failed
+    error_message: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    batch_id: Mapped[str | None] = mapped_column(
+        CHAR(36), nullable=True
+    )
     sent_at: Mapped[datetime] = mapped_column(
         DATETIME, default=lambda: datetime.now(timezone.utc)
     )
 
-    __table_args__ = (Index("idx_sent_emails_candidate", "candidate_id"),)
+    __table_args__ = (
+        Index("idx_sent_emails_candidate", "candidate_id"),
+        Index("idx_sent_emails_batch", "batch_id")
+    )

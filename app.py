@@ -1,18 +1,21 @@
-from src.storage.minio_client import MinioStorage
-from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
+from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
+from src.chat.feedback_store import save_feedback
+from src.agent.router import get_conversation_messages, has_pending_confirmation
+from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
+from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
 from src.interfaces.query_interface import (
     evaluate_candidate_for_job,
     parse_jd,
     query_candidates,
     rank_top_candidates,
+    resume_confirmation,
 )
-from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
-from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
-from src.agent.router import get_conversation_messages
-from src.chat.feedback_store import save_feedback
-from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
+from src.interfaces.notification_interface import dispatch_bulk_emails, get_batch_status
+from src.notification.bulk_email_drafter import draft_bulk_emails
+from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
 from src.notification.email_drafter import draft_interview_email
 from src.notification.email_sender import has_already_sent, send_interview_invitation
+from src.storage.minio_client import MinioStorage
 
 import sys
 
@@ -107,12 +110,87 @@ def get_jd_text_from_input(key_prefix: str) -> str | None:
     return text
 
 
+def extract_text_from_uploaded_file(uploaded_file) -> str | None:
+    """Dùng cho file đính kèm trực tiếp tại ô chat (mục 1.1 spec) — tái sử
+    dụng đúng module pdf_parser/OCR đã có, KHÔNG viết logic extract riêng.
+
+    Hỗ trợ: PDF (text layer hoặc scan, tự OCR fallback), ảnh (PNG/JPG, OCR
+    thẳng qua Gemini vision). CHƯA hỗ trợ DOCX — python-docx chưa có sẵn
+    trong project (chỉ có PDF parser), báo rõ cho HR biết thay vì âm thầm
+    bỏ qua.
+    """
+    filename = uploaded_file.name.lower()
+    file_bytes = uploaded_file.read()
+
+    if filename.endswith(".pdf"):
+        text = extract_text_from_pdf(file_bytes)
+        if len(text) < 100:
+            images = rasterize_pages(file_bytes)
+            text = ocr_extract_text_from_images(images)
+        return text
+
+    if filename.endswith((".png", ".jpg", ".jpeg")):
+        return ocr_extract_text_from_images([file_bytes])
+
+    if filename.endswith(".docx"):
+        st.warning(f"'{uploaded_file.name}': chưa hỗ trợ đọc file DOCX, bỏ qua file này.")
+        return None
+
+    st.warning(f"'{uploaded_file.name}': định dạng không được hỗ trợ, bỏ qua.")
+    return None
+
+
+def render_confirmation_ui(active_thread_id: str, payload: dict) -> None:
+    """UI cho Double Opt-in (mục 1.3) — Agent đang DỪNG LẠI (chặn kỹ thuật
+    qua interrupt(), xem jd_matching_tool.py + router.py), chờ HR xác nhận
+    tiêu chí JD trước khi chạy bước Top-K tốn kém.
+
+    Dùng has_pending_confirmation() (không phải chỉ session_state) để biết
+    có cần hiện form này không — nhờ vậy kể cả HR đổi tab/reload trang giữa
+    chừng, form xác nhận vẫn hiện lại đúng, vì trạng thái nằm trong
+    checkpointer bền (SqliteSaver), không phải bộ nhớ tạm của trình duyệt.
+    """
+    st.info("🔍 Agent đã trích xuất tiêu chí từ JD — xác nhận trước khi tìm kiếm (tốn nhiều lời gọi AI):")
+
+    edited_title = st.text_input("Vị trí", value=payload.get(
+        "position_title", ""), key=f"confirm_title_{active_thread_id}")
+    edited_skills_str = st.text_input(
+        "Kỹ năng bắt buộc (phân cách bằng dấu phẩy)",
+        value=", ".join(payload.get("required_skills", [])),
+        key=f"confirm_skills_{active_thread_id}",
+    )
+    edited_years = st.number_input(
+        "Số năm kinh nghiệm tối thiểu",
+        value=float(payload.get("min_years_experience") or 0),
+        key=f"confirm_years_{active_thread_id}",
+    )
+    edited_top_k = st.slider(
+        "Số lượng ứng viên (K)", 1, 10, value=payload.get("top_k", 5), key=f"confirm_topk_{active_thread_id}"
+    )
+
+    col_confirm, col_cancel = st.columns(2)
+    with col_confirm:
+        if st.button("✅ Đồng ý, tìm kiếm ngay", type="primary", key=f"confirm_btn_{active_thread_id}"):
+            edited_criteria = {
+                "position_title": edited_title,
+                "required_skills": [s.strip() for s in edited_skills_str.split(",") if s.strip()],
+                "min_years_experience": edited_years or None,
+                "top_k": edited_top_k,
+            }
+            with st.spinner("Đang xếp hạng và chấm điểm..."):
+                resume_confirmation(active_thread_id, confirmed=True, edited_criteria=edited_criteria)
+            st.rerun()
+    with col_cancel:
+        if st.button("❌ Huỷ", key=f"cancel_btn_{active_thread_id}"):
+            resume_confirmation(active_thread_id, confirmed=False)
+            st.rerun()
+
+
 # TAB 1 — Chat hỏi đáp
 with tab_chat:
     st.caption(
-        "Hỏi tự nhiên bằng tiếng Việt — ví dụ: "
-        "\"Ứng viên nào biết Python?\", \"So sánh 2 ứng viên gần nhất\", "
-        "\"Có bao nhiêu ứng viên trong hệ thống?\""
+        "Hỏi tự nhiên bằng tiếng Việt, có thể đính kèm PDF/ảnh ngay tại ô nhập — ví dụ: "
+        "\"Ứng viên nào biết Python?\", \"Tìm top ứng viên cho JD đính kèm này\""
     )
 
     active_thread_id = st.session_state.active_thread_id
@@ -134,21 +212,49 @@ with tab_chat:
                         save_feedback(active_thread_id, paired_question, msg["content"], "down")
                         st.toast("Đã ghi nhận, cảm ơn phản hồi!")
 
-    question = st.chat_input("Nhập câu hỏi...")
-    if question:
-        with st.chat_message("user"):
-            st.markdown(question)
+    pending_payload = has_pending_confirmation(active_thread_id)
+    if pending_payload:
+        render_confirmation_ui(active_thread_id, pending_payload)
+    else:
+        chat_value = st.chat_input(
+            "Nhập câu hỏi... (có thể đính kèm PDF/ảnh)",
+            accept_file=True,
+            file_type=["pdf", "png", "jpg", "jpeg"],
+        )
 
-        with st.chat_message("assistant"):
-            with st.spinner("Đang tra cứu..."):
-                result = query_candidates(question, thread_id=active_thread_id)
-            if result["error"]:
-                answer = f"⚠️ Có lỗi xảy ra: {result['error']}"
-            else:
-                answer = extract_answer_text(result["answer"])
-            st.markdown(answer)
+        if chat_value:
+            question_text = chat_value.text or ""
+            attached_texts = []
+            for f in chat_value.files:
+                with st.spinner(f"Đang đọc {f.name}..."):
+                    extracted = extract_text_from_uploaded_file(f)
+                if extracted:
+                    attached_texts.append(f"--- Nội dung file '{f.name}' ---\n{extracted[:5000]}")
 
-        st.rerun()
+            full_question = question_text
+            if attached_texts:
+                full_question = (question_text or "Hãy phân tích tài liệu đính kèm") + \
+                    "\n\n" + "\n\n".join(attached_texts)
+
+            display_question = question_text or f"(đính kèm {len(chat_value.files)} file)"
+
+            with st.chat_message("user"):
+                st.markdown(display_question)
+                for f in chat_value.files:
+                    st.caption(f"📎 {f.name}")
+
+            with st.chat_message("assistant"):
+                with st.spinner("Đang xử lý..."):
+                    result = query_candidates(full_question, thread_id=active_thread_id)
+
+                if result["type"] == "error":
+                    st.markdown(f"⚠️ Có lỗi xảy ra: {result['error']}")
+                elif result["type"] == "confirmation_required":
+                    st.markdown("Đã trích xuất tiêu chí từ tài liệu — xem form xác nhận bên dưới.")
+                else:
+                    st.markdown(extract_answer_text(result["content"]))
+
+            st.rerun()
 
 # TAB 2 — Đánh giá 1 ứng viên theo JD
 with tab_eval:
@@ -237,51 +343,149 @@ with tab_topk:
 
 # TAB 4 — Gửi thư mời phỏng vấn
 with tab_email:
-    st.caption(
-        "Soạn nội dung tự động, bạn xem/sửa lại trước khi gửi thật. "
-        "Email được gửi từ chính hộp mail HR đang dùng nhận CV."
-    )
+    sub_single, sub_bulk = st.tabs(["Gửi đơn lẻ", "📊 Gửi hàng loạt (Data Grid)"])
 
-    email_candidate_id = st.text_input("Candidate ID", key="email_candidate_id")
-    email_position = st.text_input("Vị trí phỏng vấn", key="email_position")
-    email_interview_details = st.text_area(
-        "Chi tiết phỏng vấn (thời gian, địa điểm, hình thức...)",
-        key="email_interview_details",
-        help="Để trống nếu chưa chốt — hệ thống sẽ không tự bịa thông tin cụ thể.",
-    )
+    with sub_single:
+        st.caption(
+            "Soạn nội dung tự động, bạn xem/sửa lại trước khi gửi thật. "
+            "Email được gửi từ chính hộp mail HR đang dùng nhận CV."
+        )
 
-    if st.button("📝 Soạn nháp", key="draft_email_btn"):
-        if not email_candidate_id or not email_position:
-            st.warning("Cần nhập Candidate ID và Vị trí phỏng vấn.")
-        else:
-            with st.spinner("Đang soạn..."):
-                draft = draft_interview_email(email_candidate_id, email_position, email_interview_details)
-            if draft is None:
-                st.error("Không tìm thấy candidate_id này hoặc bạn không có quyền xem.")
+        email_candidate_id = st.text_input("Candidate ID", key="email_candidate_id")
+        email_position = st.text_input("Vị trí phỏng vấn", key="email_position")
+        email_interview_details = st.text_area(
+            "Chi tiết phỏng vấn (thời gian, địa điểm, hình thức...)",
+            key="email_interview_details",
+            help="Để trống nếu chưa chốt — hệ thống sẽ không tự bịa thông tin cụ thể.",
+        )
+
+        if st.button("📝 Soạn nháp", key="draft_email_btn"):
+            if not email_candidate_id or not email_position:
+                st.warning("Cần nhập Candidate ID và Vị trí phỏng vấn.")
             else:
-                st.session_state.draft_subject = draft.subject
-                st.session_state.draft_body = draft.body
+                with st.spinner("Đang soạn..."):
+                    draft = draft_interview_email(email_candidate_id, email_position, email_interview_details)
+                if draft is None:
+                    st.error("Không tìm thấy candidate_id này hoặc bạn không có quyền xem.")
+                else:
+                    st.session_state.draft_subject = draft.subject
+                    st.session_state.draft_body = draft.body
 
-    if "draft_subject" in st.session_state:
-        st.divider()
+        if "draft_subject" in st.session_state:
+            st.divider()
 
-        if has_already_sent(email_candidate_id):
-            st.warning("⚠️ Candidate này ĐÃ từng được gửi email mời trước đó. Kiểm tra kỹ trước khi gửi lại.")
+            if has_already_sent(email_candidate_id):
+                st.warning("⚠️ Candidate này ĐÃ từng được gửi email mời trước đó. Kiểm tra kỹ trước khi gửi lại.")
 
-        subject_input = st.text_input("Subject", value=st.session_state.draft_subject, key="final_subject")
-        body_input = st.text_area("Nội dung", value=st.session_state.draft_body, height=250, key="final_body")
+            subject_input = st.text_input("Subject", value=st.session_state.draft_subject, key="final_subject")
+            body_input = st.text_area("Nội dung", value=st.session_state.draft_body, height=250, key="final_body")
 
-        confirm = st.checkbox("Tôi đã kiểm tra kỹ nội dung và xác nhận gửi email này")
+            confirm = st.checkbox("Tôi đã kiểm tra kỹ nội dung và xác nhận gửi email này")
 
-        if st.button("📧 Gửi email", type="primary", disabled=not confirm):
-            with st.spinner("Đang gửi..."):
-                result = send_interview_invitation(email_candidate_id, subject_input, body_input)
-            if result["success"]:
-                st.success(f"Đã gửi thành công! (message_id: {result['message_id']})")
-                del st.session_state.draft_subject
-                del st.session_state.draft_body
+            if st.button("📧 Gửi email", type="primary", disabled=not confirm):
+                with st.spinner("Đang gửi..."):
+                    result = send_interview_invitation(email_candidate_id, subject_input, body_input)
+                if result["success"]:
+                    st.success(f"Đã gửi thành công! (message_id: {result['message_id']})")
+                    del st.session_state.draft_subject
+                    del st.session_state.draft_body
+                else:
+                    st.error(f"Gửi thất bại: {result['error']}")
+
+    with sub_bulk:
+        st.caption(
+            "Soạn hàng loạt cho nhiều ứng viên, xem/sửa trực tiếp trên bảng, "
+            "chọn ai muốn gửi rồi gửi tất cả cùng lúc — chạy ngầm qua Celery, "
+            "không làm treo giao diện dù batch lớn."
+        )
+
+        bulk_candidate_ids_str = st.text_area(
+            "Danh sách Candidate ID (mỗi dòng 1 ID, hoặc phân cách bằng dấu phẩy)",
+            key="bulk_candidate_ids",
+        )
+        bulk_position = st.text_input("Vị trí phỏng vấn", key="bulk_position")
+        bulk_interview_details = st.text_area("Chi tiết phỏng vấn", key="bulk_interview_details")
+
+        if st.button("📝 Soạn nháp hàng loạt", key="bulk_draft_btn"):
+            ids = [
+                x.strip()
+                for x in bulk_candidate_ids_str.replace(",", "\n").splitlines()
+                if x.strip()
+            ]
+            if not ids or not bulk_position:
+                st.warning("Cần nhập ít nhất 1 Candidate ID và Vị trí phỏng vấn.")
             else:
-                st.error(f"Gửi thất bại: {result['error']}")
+                with st.spinner(f"Đang soạn {len(ids)} email..."):
+                    drafts = draft_bulk_emails(ids, bulk_position, bulk_interview_details)
+                st.session_state.bulk_drafts = drafts
+
+        if "bulk_drafts" in st.session_state:
+            st.divider()
+
+            failed = [r for r in st.session_state.bulk_drafts if r["error"]]
+            if failed:
+                st.warning(
+                    f"⚠️ {len(failed)} candidate không soạn được (không tồn tại/ngoài quyền xem): "
+                    + ", ".join(r["candidate_id"] for r in failed)
+                )
+
+            grid_rows = [
+                {
+                    "Gửi": True,
+                    "candidate_id": r["candidate_id"],
+                    "Tên": r["full_name"],
+                    "Subject": r["subject"],
+                    "Nội dung": r["body"],
+                }
+                for r in st.session_state.bulk_drafts
+                if r["error"] is None
+            ]
+
+            if grid_rows:
+                edited_grid = st.data_editor(
+                    grid_rows,
+                    key="bulk_email_grid",
+                    use_container_width=True,
+                    disabled=["candidate_id", "Tên"],  # chỉ cho sửa Subject/Nội dung, không sửa ID
+                    column_config={
+                        "Nội dung": st.column_config.TextColumn(width="large"),
+                    },
+                    hide_index=True,
+                )
+
+                selected_rows = [row for row in edited_grid if row["Gửi"]]
+                st.caption(f"Đã chọn {len(selected_rows)}/{len(edited_grid)} email để gửi.")
+
+                already_sent_ids = [r["candidate_id"] for r in selected_rows if has_already_sent(r["candidate_id"])]
+                if already_sent_ids:
+                    st.warning(f"⚠️ Đã từng gửi trước đó cho: {', '.join(already_sent_ids)}")
+
+                confirm_bulk = st.checkbox(
+                    f"Tôi xác nhận gửi {len(selected_rows)} email đã chọn", key="confirm_bulk_send"
+                )
+
+                if st.button("📧 Gửi tất cả đã chọn", type="primary", disabled=not confirm_bulk or not selected_rows):
+                    batch = [
+                        {"candidate_id": r["candidate_id"], "subject": r["Subject"], "body": r["Nội dung"]}
+                        for r in selected_rows
+                    ]
+                    dispatch_result = dispatch_bulk_emails(batch)
+                    st.session_state.last_batch_id = dispatch_result["batch_id"]
+                    st.success(
+                        f"Đã đẩy {dispatch_result['count']} email vào hàng đợi xử lý ngầm "
+                        f"(batch_id: {dispatch_result['batch_id']}). Xem tiến độ bên dưới."
+                    )
+                    del st.session_state.bulk_drafts
+
+        if "last_batch_id" in st.session_state:
+            st.divider()
+            st.subheader("Tiến độ batch gần nhất")
+            if st.button("🔄 Kiểm tra tiến độ", key="check_batch_btn"):
+                status = get_batch_status(st.session_state.last_batch_id)
+                st.write(
+                    f"Đã xử lý: {status['total_logged']} — Thành công: {status['success']} — Thất bại: {status['failed']}")
+                if status["details"]:
+                    st.dataframe(status["details"], use_container_width=True)
 
 
 # TAB 5 — Danh sách ứng viên
