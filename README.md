@@ -206,3 +206,38 @@ python scripts/poll_gmail_intake.py --dry-run   # đăng nhập lại, xin quy�
 ```
 
 Mọi email đã gửi thật được log vào bảng `sent_emails` (candidate_id, subject, body, gmail_message_id, sent_at) — tránh gửi trùng (có cảnh báo nếu candidate đã từng nhận mail trước đó, không tự động chặn cứng, để HR tự quyết).
+
+## Command Center — Chat đa phương tiện + Double Opt-in + Gửi hàng loạt
+
+### Upload file trực tiếp tại ô chat
+
+Đính kèm PDF/ảnh ngay tại `st.chat_input`. Nội dung tự động trích xuất (tái dùng `pdf_parser`/OCR có sẵn) và nối vào câu hỏi gửi cho Agent.
+
+### Double Opt-in — chặn kỹ thuật bằng LangGraph `interrupt()`
+
+`find_top_candidates_for_jd` trước khi chạy bước xếp hạng tốn kém, chờ HR xác nhận/sửa tiêu chí. Cơ chế:
+
+- Tool gọi `interrupt(payload)` → graph dừng, trả về `result["__interrupt__"]`
+- `router.ask()` phát hiện, trả `{"type": "confirmation_required", "payload": {...}}`
+- Streamlit hiện form xác nhận (đọc qua `has_pending_confirmation()`, bền qua reload vì dựa vào checkpointer, không phải session_state)
+- HR bấm Đồng ý/Huỷ → gọi `resume_confirmation()` → graph chạy tiếp hoặc dừng hẳn
+
+Đã unit-test kỹ (`tests/test_double_opt_in.py`) — xác nhận `rank_candidates_for_jd` **tuyệt đối không chạy** nếu chưa resume, kể cả khi giả lập LLM "quên" tự hỏi lại HR.
+
+### Giỏ hàng ứng viên — dựa vào trí nhớ hội thoại (không có state riêng)
+
+Tool `draft_bulk_interview_invitations` yêu cầu `candidate_ids` phải lấy từ hội thoại trước đó — không có cơ chế "giỏ hàng" tường minh. Docstring tool nhắc rõ: nếu không chắc HR đang nói tới ai, phải hỏi lại thay vì tự bịa ID.
+
+### Gửi hàng loạt qua Celery (Data Grid)
+
+Tab "✉️ Gửi thư mời" → sub-tab "📊 Gửi hàng loạt": soạn nháp nhiều candidate cùng lúc, sửa trực tiếp trên `st.data_editor` (checkbox chọn + inline edit), gửi tất cả qua Celery task `send_bulk_emails` — không chặn giao diện. Lỗi 1 email không dừng batch (fault tolerance), mọi kết quả (kể cả thất bại) ghi vào `sent_emails` với `status`/`error_message`/`batch_id` để audit theo từng đợt gửi.
+
+## Câu hỏi Phỏng vấn — Evidence-Grounded (chống hallucination)
+
+Sinh câu hỏi phỏng vấn dựa CHỈ trên nội dung CV thật (`candidates.raw_text` có sẵn từ Luồng A, không cần đọc lại Qdrant). Mỗi câu hỏi bắt buộc kèm `evidence_quote` — trích dẫn nguyên văn từ CV — được hệ thống **tự động đối chiếu lại** với CV gốc trước khi lưu.
+
+Câu nào evidence không khớp CV thật (hallucination) → **bị loại bỏ, không lưu, không hiển thị**. Nếu toàn bộ câu đều bị loại ở lần sinh đầu, hệ thống tự thử sinh lại đúng 1 lần.
+
+Dùng qua chat (tool `generate_interview_questions_for_candidate`) hoặc tab riêng **"❓ Câu hỏi Phỏng vấn"**.
+
+Tự động tuân theo phân quyền department (tái sử dụng `_is_candidate_allowed`).

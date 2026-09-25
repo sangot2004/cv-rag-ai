@@ -11,6 +11,11 @@ from src.interfaces.query_interface import (
     resume_confirmation,
 )
 from src.interfaces.notification_interface import dispatch_bulk_emails, get_batch_status
+from src.interfaces.interview_interface import (
+    delete_questions_for_candidate,
+    generate_questions_for_candidate,
+    get_questions_for_candidate,
+)
 from src.notification.bulk_email_drafter import draft_bulk_emails
 from src.retrieval.sql_query_tool import list_recent_candidates, search_candidates_sql
 from src.notification.email_drafter import draft_interview_email
@@ -64,8 +69,15 @@ with st.sidebar:
     if not conversations:
         st.caption("Chưa có cuộc trò chuyện nào.")
 
-tab_chat, tab_eval, tab_topk, tab_email, tab_list = st.tabs(
-    ["💬 Hỏi đáp", "📋 Đánh giá theo JD", "🎯 Top-K theo JD", "✉️ Gửi thư mời", "🗂️ Danh sách ứng viên"]
+tab_chat, tab_eval, tab_topk, tab_email, tab_interview, tab_list = st.tabs(
+    [
+        "💬 Hỏi đáp",
+        "📋 Đánh giá theo JD",
+        "🎯 Top-K theo JD",
+        "✉️ Gửi thư mời",
+        "❓ Câu hỏi Phỏng vấn",
+        "🗂️ Danh sách ứng viên",
+    ]
 )
 
 
@@ -488,7 +500,59 @@ with tab_email:
                     st.dataframe(status["details"], use_container_width=True)
 
 
-# TAB 5 — Danh sách ứng viên
+# TAB 5 - Câu hỏi phỏng vấn
+with tab_interview:
+    st.caption(
+        "Sinh câu hỏi phỏng vấn dựa CHỈ trên nội dung CV thật — mỗi câu kèm trích dẫn "
+        "làm bằng chứng, đã tự động kiểm tra không phải AI bịa đặt."
+    )
+
+    interview_candidate_id = st.text_input("Candidate ID", key="interview_candidate_id")
+    interview_max_questions = st.slider("Số lượng câu hỏi tối đa", 3, 15, value=8, key="interview_max_q")
+
+    col_gen, col_del = st.columns(2)
+    with col_gen:
+        generate_clicked = st.button("🎲 Sinh câu hỏi mới (thay thế câu cũ)", type="primary", key="gen_questions_btn")
+    with col_del:
+        delete_clicked = st.button("🗑️ Xoá toàn bộ câu hỏi của ứng viên này", key="del_questions_btn")
+
+    if generate_clicked:
+        if not interview_candidate_id:
+            st.warning("Cần nhập Candidate ID.")
+        else:
+            with st.spinner("Đang đọc CV và sinh câu hỏi..."):
+                result = generate_questions_for_candidate(interview_candidate_id, max_questions=interview_max_questions)
+            if result["error"]:
+                st.error(result["error"])
+            elif not result["questions"]:
+                st.info("CV chưa đủ thông tin cụ thể để sinh câu hỏi đáng tin cậy.")
+            else:
+                st.success(f"Đã sinh {len(result['questions'])} câu hỏi.")
+
+    if delete_clicked:
+        if not interview_candidate_id:
+            st.warning("Cần nhập Candidate ID.")
+        else:
+            result = delete_questions_for_candidate(interview_candidate_id)
+            st.success(f"Đã xoá {result['deleted']} câu hỏi.")
+
+    if interview_candidate_id:
+        existing = get_questions_for_candidate(interview_candidate_id)
+        questions = existing["questions"]
+
+        if questions:
+            st.divider()
+            st.subheader(f"Câu hỏi hiện có ({len(questions)})")
+
+            category_colors = {"Technical": "🔵", "System Design": "🟣", "Soft Skill": "🟢"}
+            for q in questions:
+                icon = category_colors.get(q["category"], "⚪")
+                with st.expander(f"{icon} [{q['category']}] {q['question']}"):
+                    st.markdown(f"**Mục CV liên quan:** {q['cv_section']}")
+                    st.markdown(f"**Trích dẫn bằng chứng:** _{q['evidence_quote']}_")
+
+
+# TAB 6 — Danh sách ứng viên
 with tab_list:
     st.caption("Xem nhanh danh sách ứng viên, lọc theo kỹ năng nếu cần.")
 

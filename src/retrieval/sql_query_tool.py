@@ -166,6 +166,22 @@ def get_candidate_full_profile(candidate_id: str) -> dict | None:
         }
 
 
+def get_candidate_raw_text(candidate_id: str) -> dict | None:
+    with SessionLocal() as session:
+        candidate = session.get(Candidate, candidate_id)
+        if candidate is None:
+            return None
+        if not _is_candidate_allowed(candidate):
+            logging.warning(
+                "get_candidate_raw_text: candidate_id=%s bị chặn do ngoài department scope",
+                candidate_id,
+            )
+            return None
+        if not candidate.raw_text:
+            return None
+        return {"full_name": candidate.full_name, "raw_text": candidate.raw_text}
+
+
 def get_multiple_candidates_profile(candidate_ids: list[str]) -> list[dict]:
     """Lấy full profile của nhiều candidate cùng lúc
     - dùng cho compare"""

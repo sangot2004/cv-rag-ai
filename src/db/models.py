@@ -281,3 +281,20 @@ class SentEmail(Base):
         Index("idx_sent_emails_candidate", "candidate_id"),
         Index("idx_sent_emails_batch", "batch_id")
     )
+
+
+class InterviewQuestion(Base):
+
+    __tablename__ = "interview_questions"
+
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    candidate_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False
+    )
+    question_text: Mapped[str] = mapped_column(TEXT, nullable=False)
+    category: Mapped[str] = mapped_column(VARCHAR(30), nullable=False)
+    evidence_quote: Mapped[str] = mapped_column(TEXT, nullable=False)
+    cv_section: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (Index("idx_interview_questions_candidate", "candidate_id"),)

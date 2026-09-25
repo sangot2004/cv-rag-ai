@@ -12,6 +12,7 @@ from src.agent.tools.compare_tool import compare_candidates
 from src.agent.tools.draft_email_tool import draft_interview_invitation
 from src.agent.tools.bulk_email_tool import draft_bulk_interview_invitations
 from src.agent.tools.evaluation_tool import evaluate_candidate_against_jd
+from src.agent.tools.interview_question_tool import generate_interview_questions_for_candidate
 from src.agent.tools.jd_matching_tool import find_top_candidates_for_jd
 from src.agent.tools.recent_candidates_tool import list_recent_cvs
 from src.agent.tools.search_tool import semantic_search_cv
@@ -46,6 +47,8 @@ _tools = [
     find_top_candidates_for_jd,
     draft_interview_invitation,
     draft_bulk_interview_invitations,
+    generate_interview_questions_for_candidate,
+
 ]
 
 
