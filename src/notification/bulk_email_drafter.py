@@ -1,10 +1,12 @@
 import logging
 
+from src.ops.telemetry import monitored
 from src.notification.email_drafter import draft_interview_email
 
 logger = logging.getLogger(__name__)
 
 
+@monitored('bulk_email_draft', ref=None)
 def draft_bulk_emails(candidate_ids: list[str], position: str, interview_details: str) -> list[dict]:
     from src.retrieval.sql_query_tool import get_candidate_full_profile
 

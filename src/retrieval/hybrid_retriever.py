@@ -37,9 +37,12 @@ def hybrid_search(
     quan hơn với câu hỏi tự nhiên của HR — có thể tune lại sau khi có dữ
     liệu đánh giá thật (Luồng E).
     """
+    from src.ops.optimization import active_config
+
+    multiplier = active_config()["retrieval_multiplier"]
     query_vector = embed_query(query)
-    vector_results = QdrantStore().search(query_vector, top_k=top_k * 2, candidate_id=candidate_id)
-    bm25_results = search_bm25(query, top_k=top_k * 2)
+    vector_results = QdrantStore().search(query_vector, top_k=top_k * multiplier, candidate_id=candidate_id)
+    bm25_results = search_bm25(query, top_k=top_k * multiplier)
 
     if candidate_id:
         bm25_results = [r for r in bm25_results if r["payload"].get("candidate_id") == candidate_id]
@@ -65,6 +68,7 @@ def hybrid_search(
             }
 
     ranked = sorted(merged.values(), key=lambda x: x["combined_score"], reverse=True)[:top_k]
+
     allowed_ids = get_allowed_candidate_ids()
     if allowed_ids is not None:
         before = len(ranked)
@@ -72,6 +76,7 @@ def hybrid_search(
         logger.info("hybrid_search: lọc theo department scope %d -> %d kết quả", before, len(ranked))
 
     ranked = ranked[:top_k]
+
     logger.info(
         "hybrid_search query=%r ->%d vector + %d bm25 -> %d merged",
         query, len(vector_results), len(bm25_results), len(ranked),

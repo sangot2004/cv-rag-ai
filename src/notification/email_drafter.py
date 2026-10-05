@@ -2,6 +2,7 @@ import logging
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.ops.telemetry import monitored, UsageCallback
 from src.config.settings import get_settings
 from src.llm.key_manager import call_with_key_failover
 from src.retrieval.sql_query_tool import get_candidate_full_profile
@@ -26,11 +27,13 @@ Chi tiết phỏng vấn do HR cung cấp:
 
 
 def _draft_call(api_key: str, prompt: str) -> EmailDraft:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(EmailDraft)
     return structured_llm.invoke(prompt)
 
 
+@monitored('email_draft', ref='candidate_id')
 def draft_interview_email(candidate_id: str, position: str, interview_details: str) -> EmailDraft | None:
     """CHỈ SOẠN NỘI DUNG, KHÔNG GỬI GÌ CẢ — trả về EmailDraft để hiển thị
     cho HR xem/sửa trước. Việc gửi thật nằm ở

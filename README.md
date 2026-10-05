@@ -241,3 +241,7 @@ Câu nào evidence không khớp CV thật (hallucination) → **bị loại b�
 Dùng qua chat (tool `generate_interview_questions_for_candidate`) hoặc tab riêng **"❓ Câu hỏi Phỏng vấn"**.
 
 Tự động tuân theo phân quyền department (tái sử dụng `_is_candidate_allowed`).
+
+## AI Observability — Phase 1 + 2
+
+See [OPS_SETUP.md](OPS_SETUP.md) for migration, pricing, dashboard and limitations.

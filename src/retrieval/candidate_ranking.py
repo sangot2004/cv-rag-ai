@@ -1,5 +1,6 @@
 import logging
 
+from src.ops.telemetry import monitored
 from src.evaluation.evaluator import evaluate_candidate
 from src.retrieval.hybrid_retriever import hybrid_search
 from src.retrieval.reranker import rerank
@@ -13,6 +14,7 @@ MAX_TOP_K = 10
 MAX_SQL_PREFILTER_POOL = 200
 
 
+@monitored('jd_ranking', ref=None)
 def rank_candidates_for_jd(jd: JDSchema, top_k: int = 5) -> list[dict]:
     top_k = min(top_k, MAX_TOP_K)
 

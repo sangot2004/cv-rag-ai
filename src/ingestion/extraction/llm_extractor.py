@@ -5,6 +5,8 @@ from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 
+from src.ops.telemetry import monitored
+from src.ops.telemetry import UsageCallback
 from src.config.settings import get_settings
 from src.ingestion.extraction.prompts import (
     CLASSIFY_CV_PROMPT,
@@ -21,19 +23,22 @@ settings = get_settings()
 
 
 def _classify_call(api_key: str, raw_text: str) -> CVClassification:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_CLASSIFY_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_CLASSIFY_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_CLASSIFY_MODEL)])
     structured_llm = llm.with_structured_output(CVClassification)
     prompt = CLASSIFY_CV_PROMPT.format(text=raw_text)
     return structured_llm.invoke(prompt)
 
 
-def _extract_call(api_key: str, raw_text: str) -> CVSchema:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+def _extract_call(api_key: str, raw_text: str, model: str | None = None) -> CVSchema:
+    llm = ChatGoogleGenerativeAI(model=model or settings.GEMINI_LLM_MODEL, google_api_key=api_key, callbacks=[
+                                 UsageCallback(model or settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(CVSchema)
     prompt = EXTRACT_CV_PROMPT.format(text=raw_text)
     return structured_llm.invoke(prompt)
 
 
+@monitored('classify', ref=None)
 def classify_is_cv(raw_text: str, max_chars: int = 3000) -> CVClassification:
     """check nd có thực sự là cv ko, trước khi tốn chi phí extraction, chỉ lấy max_chars đầu để tiết kiệm token
     đủ để phân loại"""
@@ -46,13 +51,20 @@ def classify_is_cv(raw_text: str, max_chars: int = 3000) -> CVClassification:
     return result
 
 
+@monitored('extraction', ref=None)
 def extract_cv_data(raw_text: str) -> CVSchema:
-    """trích xuấy thành cvschema"""
-    return call_with_key_failover(lambda key: _extract_call(key, raw_text))
+    from src.ops.optimization import active_config, cached_extract
+
+    config = active_config()
+    model = config["extraction_model"] or settings.GEMINI_LLM_MODEL
+    return cached_extract(raw_text, model, EXTRACT_CV_PROMPT, CVSchema,
+                          lambda: call_with_key_failover(lambda key: _extract_call(key, raw_text, model)),
+                          config["cache_enabled"])
 
 
 def _ocr_call(api_key: str, images: list[bytes]) -> str:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
 
     content = [{"type": "text", "text": OCR_CV_IMAGE_PROMPT}]
     for img_bytes in images:
@@ -61,6 +73,7 @@ def _ocr_call(api_key: str, images: list[bytes]) -> str:
 
     message = HumanMessage(content=content)
     response = llm.invoke([message])
+
     if isinstance(response.content, list):
         return "".join(
             block.get("text", "") if isinstance(block, dict) else str(block)
@@ -69,6 +82,7 @@ def _ocr_call(api_key: str, images: list[bytes]) -> str:
     return response.content
 
 
+@monitored('ocr', ref=None)
 def ocr_extract_text_from_images(images: list[bytes]) -> str:
     if not images:
         return ""
@@ -78,7 +92,8 @@ def ocr_extract_text_from_images(images: list[bytes]) -> str:
 
 
 def _extract_jd_call(api_key: str, raw_text: str) -> JDSchema:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(JDSchema)
     prompt = EXTRACT_JD_PROMPT.format(text=raw_text)
     result = structured_llm.invoke(prompt)
@@ -86,5 +101,6 @@ def _extract_jd_call(api_key: str, raw_text: str) -> JDSchema:
     return result
 
 
+@monitored('jd_extraction', ref=None)
 def extract_jd_data(raw_text: str) -> JDSchema:
     return call_with_key_failover(lambda key: _extract_jd_call(key, raw_text))

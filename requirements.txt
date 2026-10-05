@@ -22,3 +22,5 @@ redis>=5.0
 sentence-transformers>=3.0
 sqlalchemy>=2.0
 streamlit>=1.63
+
+pandas>=2.0

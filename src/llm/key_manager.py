@@ -85,7 +85,9 @@ def call_with_key_failover(build_and_call_fn):
     for attempt in range(manager.num_keys):
         key = manager.get_current_key()
         try:
-            return build_and_call_fn(key)
+            from src.ops.telemetry import operation_scope, _context
+            with operation_scope(_context.get().get("module_name", "unknown"), attempt=attempt+1):
+                return build_and_call_fn(key)
         except Exception as e:
             last_error = e
             if is_quota_error(e) and attempt < manager.num_keys - 1:

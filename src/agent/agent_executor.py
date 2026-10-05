@@ -3,6 +3,8 @@ import logging
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.ops.telemetry import UsageCallback
+
 from src.agent.tools.candidate_detail_tool import get_candidate_detail
 from src.agent.tools.certificate_project_tool import (
     find_candidates_by_certificate,
@@ -53,7 +55,8 @@ _tools = [
 
 
 def build_agent_executor(api_key: str, checkpointer=None):
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     return create_agent(
         model=llm, tools=_tools, system_prompt=SYSTEM_PROMPT, checkpointer=checkpointer
     )

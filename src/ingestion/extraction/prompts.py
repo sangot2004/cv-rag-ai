@@ -9,25 +9,91 @@ Văn bản (có thể bị cắt bớt nếu quá dài):
 ---"""
 
 
-EXTRACT_CV_PROMPT = """Trích xuất thông tin từ CV sau thành dữ liệu có cấu trúc.
-Nếu một trường không xuất hiện rõ ràng trong CV, để None thay vì tự bịa ra.
-Tính total_years_experience bằng cách cộng khoảng thời gian của các mục experience,
-làm tròn 1 chữ số thập phân.
+EXTRACT_CV_PROMPT = EXTRACT_CV_PROMPT = """Trích xuất thông tin từ CV sau thành dữ liệu có cấu trúc.
 
-QUAN TRỌNG về end_date: nếu CV ghi "Present", "Hiện tại", "Now", hoặc không ghi ngày
-kết thúc (nghĩa là công việc/học vấn đó vẫn đang tiếp diễn), PHẢI để end_date=None.
-TUYỆT ĐỐI không tự suy đoán hay bịa ra một ngày cụ thể cho trường hợp này.
+NGUYÊN TẮC CHUNG:
+- Chỉ trích xuất thông tin có bằng chứng rõ ràng trong CV.
+- Không tự bổ sung thông tin từ kiến thức bên ngoài.
+- Trường tùy chọn không xuất hiện hoặc không xác định được: để None.
+- Danh sách không có thông tin được xác nhận: để rỗng.
+- Văn bản CV có thể bị đảo thứ tự do quá trình extract/OCR.
+  Không suy đoán quan hệ giữa các mục chỉ dựa vào vị trí dòng.
 
-Về certificates: chỉ lấy các mục CV ghi rõ trong phần "Chứng chỉ"/"Certifications"/
-"Certificates" — KHÔNG tự suy diễn 1 khóa học hay 1 dự án thành chứng chỉ nếu CV
-không ghi rõ đó là chứng chỉ đã được cấp. Để rỗng nếu CV không có phần này.
+VỀ NỘI DUNG MẪU VÀ PLACEHOLDER:
+- Không coi nội dung trong "[e.g., ...]", "[Technologies Used, e.g., ...]",
+  "[Your Name]" hoặc các hướng dẫn điền mẫu tương tự là thông tin thật.
+- Dấu ngoặc vuông thông thường không tự động có nghĩa là placeholder.
+  Ví dụ "[React / HTML / Tailwind CSS]" không chứa hướng dẫn điền mẫu
+  vẫn có thể là danh sách công nghệ được xác nhận.
+- Một công nghệ xuất hiện trong placeholder vẫn được trích xuất nếu
+  được xác nhận độc lập ở phần khác của CV.
 
-Về projects: lấy từ phần "Dự án"/"Projects" nếu có. Tách rõ 3 phần riêng biệt:
-- role: vai trò của ứng viên trong dự án (nếu CV ghi rõ)
-- tech_stack: danh sách công nghệ dùng trong dự án (tách thành list, không để chung câu văn)
-- description: chỉ mô tả nội dung/mục tiêu dự án, KHÔNG lặp lại role hay tech_stack đã tách
-Nếu 1 dự án chỉ là 1 dòng liệt kê trong phần Experience (không có mục Projects riêng),
-không cần tách ra thành project — chỉ lấy phần Projects là mục riêng biệt trong CV.
+VỀ SKILLS:
+- Chỉ lấy kỹ năng được ghi rõ hoặc được xác nhận qua mô tả công việc,
+  dự án hay chứng chỉ.
+- Không lấy kỹ năng chỉ xuất hiện trong nội dung mẫu.
+- Tách từng kỹ năng thành một phần tử trong danh sách.
+- Loại bỏ kỹ năng trùng lặp.
+- Không suy diễn thêm kỹ năng từ chức danh hoặc ngành học.
+
+VỀ EXPERIENCE VÀ NGÀY THÁNG:
+- Chỉ gán công ty, chức danh và ngày tháng khi xác định rõ chúng thuộc
+  cùng một công việc.
+- Không gán các mốc thời gian rời rạc dựa vào thứ tự văn bản extract.
+- Nếu không xác định được ngày thuộc công việc nào, để ngày đó là None.
+- Chuẩn hóa ngày tháng về YYYY-MM khi xác định được cả năm và tháng.
+- Nếu chỉ có năm, không tự chọn tháng; để trường ngày là None.
+- Nếu CV ghi "Present", "Hiện tại" hoặc "Now", để end_date=None.
+- Nếu không ghi ngày kết thúc, cũng để end_date=None; điều này không
+  tự động chứng minh công việc vẫn đang tiếp diễn.
+- Không tự bịa tên công ty. Nếu thiếu thông tin bắt buộc để tạo một
+  mục experience hợp lệ, không tạo mục đó bằng giá trị suy đoán.
+
+VỀ TOTAL_YEARS_EXPERIENCE:
+- Chỉ tính khi các mục kinh nghiệm có đủ ngày bắt đầu và kết thúc,
+  đồng thời xác định rõ ngày thuộc công việc tương ứng.
+- Nếu ngày tháng thiếu, mơ hồ hoặc công việc đang tiếp diễn nhưng
+  không có mốc tính được cung cấp rõ ràng, để None.
+- Không tự suy đoán ngày hiện tại.
+- Không dùng thời gian học hoặc làm dự án cá nhân thay cho kinh nghiệm
+  làm việc.
+- Không cộng trùng các khoảng thời gian làm việc chồng lấn.
+- Khi đủ dữ liệu, tính tổng thời gian làm việc và làm tròn 1 chữ số
+  thập phân.
+
+VỀ EDUCATION:
+- Chỉ lấy trường, bằng cấp, chuyên ngành và năm tốt nghiệp được ghi rõ.
+- Không suy đoán năm tốt nghiệp từ tuổi hoặc khoảng thời gian khác.
+- Không tự bổ sung bằng cấp dựa vào tên trường.
+
+VỀ CERTIFICATES:
+- Chỉ lấy các mục được ghi rõ là chứng chỉ hoặc kết quả chứng nhận,
+  trong phần "Chứng chỉ"/"Certifications"/"Certificates" hoặc phần
+  khác có bằng chứng rõ ràng.
+- Không tự suy diễn một khóa học hay dự án thành chứng chỉ đã được cấp.
+- Giữ điểm số nếu có, ví dụ "IELTS 7.0", "TOEIC 900".
+- issuer, issue_date và credential_id để None nếu không được ghi rõ.
+- Để danh sách rỗng nếu không có chứng chỉ được xác nhận.
+
+VỀ PROJECTS:
+- Lấy từ phần "Dự án"/"Projects"/"Personal Projects" nếu có.
+- Tách rõ:
+  + role: vai trò của ứng viên, chỉ lấy nếu CV ghi rõ.
+  + tech_stack: danh sách công nghệ được xác nhận trong dự án.
+  + description: nội dung, mục tiêu hoặc đóng góp được ghi trong CV.
+- Không lấy công nghệ chỉ nằm trong placeholder làm tech_stack.
+- Không bổ sung công nghệ dựa vào tên hoặc loại dự án.
+- Không lặp lại role hay danh sách tech_stack trong description nếu
+  không cần thiết.
+- Nếu dự án chỉ là một dòng trong Experience và không có mục Projects
+  riêng, giữ trong mô tả kinh nghiệm, không tạo thêm project trùng lặp.
+- Không tự bổ sung ngày bắt đầu hoặc kết thúc dự án.
+
+VỀ DESCRIPTION:
+- Giữ sát nội dung CV, có thể nối các dòng bị ngắt thành câu dễ đọc.
+- Không thêm thành tích, số liệu, trách nhiệm hoặc công nghệ không có
+  trong CV.
+- Không phóng đại mức độ đóng góp của ứng viên.
 
 CV:
 ---

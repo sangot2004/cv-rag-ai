@@ -27,6 +27,7 @@ from src.ingestion.parsers.pdf_parser import (
 from src.retrieval.department_store import match_posting_for_position
 from src.storage.minio_client import MinioStorage
 from src.vectorstore.qdrant_client import QdrantStore
+from src.ops.telemetry import monitored
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ def _parse_date(date_str: str | None) -> date | None:
     return None
 
 
+@monitored('ingestion', ref='job_id')
 def run_ingestion_pipeline(job_id: str) -> str:
     storage = MinioStorage()
 

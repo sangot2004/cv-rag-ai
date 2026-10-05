@@ -3,6 +3,7 @@ import re
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.ops.telemetry import monitored, UsageCallback
 from src.config.settings import get_settings
 from src.db.models import InterviewQuestion
 from src.db.session import SessionLocal
@@ -22,7 +23,8 @@ def _normalize(text: str) -> str:
 
 
 def _generate_call(api_key: str, cv_text: str, max_questions: int) -> QuestionList:
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+                                 callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(QuestionList)
     prompt = GENERATE_INTERVIEW_QUESTIONS_PROMPT.format(cv_text=cv_text, max_questions=max_questions)
     return structured_llm.invoke(prompt)
@@ -40,6 +42,7 @@ class CandidateHasNoCVError(Exception):
     pass
 
 
+@monitored('interview_questions', ref='candidate_id')
 def generate_interview_questions(candidate_id: str, max_questions: int = DEFAULT_MAX_QUESTIONS) -> list[dict]:
     profile = get_candidate_raw_text(candidate_id)
     if profile is None:

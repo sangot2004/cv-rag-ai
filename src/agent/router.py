@@ -3,6 +3,7 @@ import logging
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
+from src.ops.telemetry import monitored
 from src.agent.agent_executor import build_agent_executor
 from src.chat.conversation_store import touch_conversation
 from src.llm.key_manager import get_key_manager, is_quota_error
@@ -72,6 +73,7 @@ def _build_response(result: dict) -> dict:
     return {"type": "answer", "content": answer}
 
 
+@monitored('agent_chat', ref='thread_id')
 def ask(question: str, thread_id: str = "default", department_id: str | None = None) -> dict:
     logger.info("Agent nhận câu hỏi (thread_id=%s, department_id=%s): %r", thread_id, department_id, question)
 
@@ -102,6 +104,7 @@ def ask(question: str, thread_id: str = "default", department_id: str | None = N
     raise last_error
 
 
+@monitored('agent_resume', ref='thread_id')
 def resume(
         thread_id: str,
         confirmed: bool,

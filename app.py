@@ -69,7 +69,7 @@ with st.sidebar:
     if not conversations:
         st.caption("Chưa có cuộc trò chuyện nào.")
 
-tab_chat, tab_eval, tab_topk, tab_email, tab_interview, tab_list = st.tabs(
+tab_chat, tab_eval, tab_topk, tab_email, tab_interview, tab_list, tab_ops = st.tabs(
     [
         "💬 Hỏi đáp",
         "📋 Đánh giá theo JD",
@@ -77,6 +77,7 @@ tab_chat, tab_eval, tab_topk, tab_email, tab_interview, tab_list = st.tabs(
         "✉️ Gửi thư mời",
         "❓ Câu hỏi Phỏng vấn",
         "🗂️ Danh sách ứng viên",
+        "📊 System Ops",
     ]
 )
 
@@ -593,3 +594,12 @@ with tab_list:
                             st.warning(f"Không tải được ảnh: {e}")
                     else:
                         st.info("Ứng viên này không có ảnh chân dung được tách ra.")
+
+
+# tab_ops
+with tab_ops:
+    from src.ops.dashboard import render_ops_dashboard
+    render_ops_dashboard()
+
+    from src.ops.optimization_ui import render_optimization
+    render_optimization()

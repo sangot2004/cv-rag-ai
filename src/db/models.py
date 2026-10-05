@@ -298,3 +298,28 @@ class InterviewQuestion(Base):
     created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (Index("idx_interview_questions_candidate", "candidate_id"),)
+
+
+class LLMUsageLog(Base):
+    __tablename__ = "llm_usage_logs"
+    id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
+    operation_id: Mapped[str] = mapped_column(VARCHAR(64), nullable=False)
+    module_name: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
+    job_id: Mapped[str | None] = mapped_column(VARCHAR(64), nullable=True)
+    candidate_id: Mapped[str | None] = mapped_column(VARCHAR(64), nullable=True)
+    thread_id: Mapped[str | None] = mapped_column(VARCHAR(100), nullable=True)
+    model_name: Mapped[str] = mapped_column(VARCHAR(150), nullable=False)
+    input_tokens: Mapped[int | None] = mapped_column(INT, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(INT, nullable=True)
+    cached_tokens: Mapped[int | None] = mapped_column(INT, nullable=True)
+    reasoning_tokens: Mapped[int | None] = mapped_column(INT, nullable=True)
+    latency_ms: Mapped[float] = mapped_column(FLOAT, nullable=False)
+    estimated_cost_usd: Mapped[float | None] = mapped_column(FLOAT, nullable=True)
+    attempt: Mapped[int] = mapped_column(INT, nullable=False, default=1)
+    pricing_version: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
+    status: Mapped[str] = mapped_column(VARCHAR(20), nullable=False)
+    error_type: Mapped[str | None] = mapped_column(VARCHAR(150), nullable=True)
+    langsmith_run_id: Mapped[str | None] = mapped_column(VARCHAR(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc))
+    __table_args__ = (Index("idx_usage_created", "created_at"), Index(
+        "idx_usage_operation", "operation_id"), Index("idx_usage_job", "job_id"))

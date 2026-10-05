@@ -237,7 +237,7 @@ def count_candidate_stats(
         query = select(func.count(func.distinct(Candidate.candidate_id)))
 
         if skills:
-            all_terms = list[str] = []
+            all_terms: list[str] = []
             for s in skills:
                 all_terms.extend(expand_search_terms(s))
             skills_conditions = [CandidateSkill.skill_name.ilike(f"%{t}") for t in all_terms]
