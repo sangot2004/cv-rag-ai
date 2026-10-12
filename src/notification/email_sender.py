@@ -1,5 +1,6 @@
 import logging
 
+from src.auth.service import admin_only
 from src.db.models import Candidate, SentEmail
 from src.db.session import SessionLocal
 from src.ingestion.email_intake.gmail_client import GmailClient
@@ -20,7 +21,7 @@ def has_already_sent(candidate_id: str) -> bool:
         return existing is not None
 
 
-def send_interview_invitation(candidate_id: str, subject: str, body: str, batch_id: str | None = None) -> dict:
+def _deliver_interview_invitation(candidate_id: str, subject: str, body: str, batch_id: str | None = None) -> dict:
     with SessionLocal() as session:
         candidate = session.get(Candidate, candidate_id)
         if candidate is None:
@@ -68,3 +69,8 @@ def send_interview_invitation(candidate_id: str, subject: str, body: str, batch_
 
     logger.info("Đã gửi + ghi log email mời PV cho caididate_id=%s", candidate_id)
     return {"success": True, "message_id": message_id, "error": None}
+
+
+@admin_only
+def send_interview_invitation(candidate_id, subject, body, batch_id=None):
+    return _deliver_interview_invitation(candidate_id, subject, body, batch_id)

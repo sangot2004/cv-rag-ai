@@ -8,13 +8,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from src.ops.telemetry import monitored
 from src.ops.telemetry import UsageCallback
 from src.config.settings import get_settings
-from src.ingestion.extraction.prompts import (
-    CLASSIFY_CV_PROMPT,
-    EXTRACT_CV_PROMPT,
-    EXTRACT_JD_PROMPT,
-    OCR_CV_IMAGE_PROMPT,
-)
 from src.llm.key_manager import call_with_key_failover
+from src.llm.prompt_store import format_prompt
 from src.schemas.cv_schema import CVClassification, CVSchema
 from src.schemas.jd_schema import JDSchema
 
@@ -23,19 +18,21 @@ settings = get_settings()
 
 
 def _classify_call(api_key: str, raw_text: str) -> CVClassification:
+    prompt = format_prompt("cv-rag-classify-cv", text=raw_text)
     llm = ChatGoogleGenerativeAI(model=settings.GEMINI_CLASSIFY_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_CLASSIFY_MODEL)])
     structured_llm = llm.with_structured_output(CVClassification)
-    prompt = CLASSIFY_CV_PROMPT.format(text=raw_text)
     return structured_llm.invoke(prompt)
 
 
-def _extract_call(api_key: str, raw_text: str, model: str | None = None) -> CVSchema:
+def _extract_call(api_key: str, raw_text: str, model: str | None = None,
+                  *, prompt_text: str | None = None) -> CVSchema:
+    if prompt_text is None:
+        prompt_text = format_prompt("cv-rag-extract-cv", text=raw_text)
     llm = ChatGoogleGenerativeAI(model=model or settings.GEMINI_LLM_MODEL, google_api_key=api_key, callbacks=[
                                  UsageCallback(model or settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(CVSchema)
-    prompt = EXTRACT_CV_PROMPT.format(text=raw_text)
-    return structured_llm.invoke(prompt)
+    return structured_llm.invoke(prompt_text)
 
 
 @monitored('classify', ref=None)
@@ -57,16 +54,22 @@ def extract_cv_data(raw_text: str) -> CVSchema:
 
     config = active_config()
     model = config["extraction_model"] or settings.GEMINI_LLM_MODEL
-    return cached_extract(raw_text, model, EXTRACT_CV_PROMPT, CVSchema,
-                          lambda: call_with_key_failover(lambda key: _extract_call(key, raw_text, model)),
+    prompt_text = format_prompt(
+        "cv-rag-extract-cv", commit=config["extraction_prompt_version"], text=raw_text
+    )
+    return cached_extract(raw_text, model, prompt_text, CVSchema,
+                          lambda: call_with_key_failover(
+                              lambda key: _extract_call(key, raw_text, model, prompt_text=prompt_text)
+                          ),
                           config["cache_enabled"])
 
 
 def _ocr_call(api_key: str, images: list[bytes]) -> str:
+    prompt_text = format_prompt("cv-rag-ocr-cv-image")
     llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
 
-    content = [{"type": "text", "text": OCR_CV_IMAGE_PROMPT}]
+    content = [{"type": "text", "text": prompt_text}]
     for img_bytes in images:
         b64 = base64.b64encode(img_bytes).decode("utf-8")
         content.append({"type": "image_url", "image_url": f"data:image/png;base64,{b64}"})
@@ -92,10 +95,10 @@ def ocr_extract_text_from_images(images: list[bytes]) -> str:
 
 
 def _extract_jd_call(api_key: str, raw_text: str) -> JDSchema:
+    prompt = format_prompt("cv-rag-extract-jd", text=raw_text)
     llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(JDSchema)
-    prompt = EXTRACT_JD_PROMPT.format(text=raw_text)
     result = structured_llm.invoke(prompt)
     result.raw_text = raw_text
     return result

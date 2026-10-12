@@ -25,9 +25,9 @@ Set rates from your provider's current price table and billing tier. Estimated c
 
 LangChain callbacks record model calls in classification, extraction, OCR, JD extraction/evaluation, chat agent, email drafts, interview questions. Direct google.genai embeddings are measured separately. operation_id groups child calls; job_id/candidate_id/thread_id link business entities where applicable. Every callback-observed failed attempt is recorded. Hidden SDK retries may not be individually visible; errors may not expose billable token usage.
 
-Logs persist metadata only, not prompts, CV contents or API keys. Writes are best effort: a DB logging error is logged and does not fail the business operation. No durable telemetry queue in this MVP. Call latency excludes queue waiting, parsing, reranking and human confirmation time. It is not complete end-to-end business latency.
+The local `LLMUsageLog` table stores metadata only, not prompts, CV contents or API keys. LangSmith traces and evaluation datasets may contain CV text and prompts when tracing is enabled; use only data permitted in that workspace. Local usage writes are best effort: a DB logging error is logged and does not fail the business operation. No durable telemetry queue in this MVP. Call latency excludes queue waiting, parsing, reranking and human confirmation time. It is not complete end-to-end business latency.
 
-System Ops shows time/module/model filters, tokens, estimated priced costs, missing-data coverage, error rate, median/p95 call latency, token trends, scatter plot, per-job observed costs and rule alerts. Per-CV costs within selected filters/time range may be partial. DLQ count is global. Demo dashboard inherits the existing application's lack of login; add backend-admin authorization before multi-user deployment. For large log volumes use server-side aggregation/pagination; MVP loads selected date range.
+System Ops shows time/module/model filters, tokens, estimated priced costs, missing-data coverage, error rate, median/p95 call latency, token trends, scatter plot, per-job observed costs and rule alerts. Per-CV costs within selected filters/time range may be partial. DLQ count is global. The dashboard requires an admin account. For large log volumes use server-side aggregation/pagination; MVP loads selected date range.
 
 ## Verification
 
@@ -36,8 +36,6 @@ pytest tests/test_ops.py -v
 pytest tests/ -v
 ```
 
-Integration check on your running services: process a PDF, ask a question, draft an email without sending, generate interview questions; verify usage modules in System Ops. Disable with OPS_ENABLED=false. No Phase 3 caching/model routing or Phase 4 config agent is implemented.
+Integration check on your running services: process a PDF, ask a question, draft an email without sending, generate interview questions; verify usage modules in System Ops. Disable telemetry with OPS_ENABLED=false. Phase 3 includes extraction cache and versioned extraction model/prompt configuration plus retrieval overfetch. Phase 4 compares extraction proposals on a labeled dataset before admin approval or rollback. Difficulty routing, retrieval experiments and LLM judge are not implemented.
 
-## Validation in delivery environment
-
-19 tests passed (6 Ops + 13 existing key-manager tests); Python syntax checks passed; full migration chain generated MySQL SQL offline. No live provider/Streamlit rendering or full existing test-suite execution was performed.
+The default `pytest` suite runs maintained unit tests in `tests/`; the legacy scripts in `tests/all test/` require local files and running services and are excluded from default collection.

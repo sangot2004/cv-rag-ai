@@ -3,12 +3,13 @@ import logging
 
 from src.db.models import ChatFeedback
 from src.db.session import SessionLocal
+from src.auth.service import admin_only
+from src.chat.conversation_store import require_conversation
 
 logger = logging.getLogger(__name__)
 
 
 def _ensure_string(data) -> str:
-    """Hàm phụ trợ: Ép mọi loại dữ liệu (list, dict từ LLM) về string an toàn trước khi lưu DB."""
     if isinstance(data, str):
         return data
     if isinstance(data, list):
@@ -28,10 +29,10 @@ def _ensure_string(data) -> str:
 
 def save_feedback(thread_id: str, question: str, answer: str, feedback: str) -> None:
     """Lưu phản hồi của người dùng về câu trả lời của AI."""
+    require_conversation(thread_id)
     if feedback not in ("up", "down"):
         raise ValueError(f"feedback phải là 'up' hoặc 'down', nhưng nhận được: {feedback!r}")
 
-    # Xử lý ép kiểu an toàn (tránh lỗi TypeError của SQLAlchemy khi gặp dict)
     safe_question = _ensure_string(question)
     safe_answer = _ensure_string(answer)
 
@@ -48,9 +49,8 @@ def save_feedback(thread_id: str, question: str, answer: str, feedback: str) -> 
     logger.info("Lưu feedback=%s cho thread_id=%s", feedback, thread_id)
 
 
+@admin_only
 def get_negative_feedback_examples(limit: int = 50) -> list[dict]:
-    """Lấy các câu hỏi bị phản hồi tiêu cực (feedback='down') để 
-    phân tích hoặc huấn luyện lại."""
     with SessionLocal() as session:
         rows = (
             session.query(ChatFeedback)

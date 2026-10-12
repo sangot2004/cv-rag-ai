@@ -203,6 +203,7 @@ def search_by_certificate(certificate_name: str, limit: int = 20) -> list[dict]:
             .distinct()
             .limit(limit)
         )
+        query = _apply_department_scope(query)
         candidates = session.execute(query).scalars().all()
         logger.info("search_by_certificate: %r -> %d kết quả", certificate_name, len(candidates))
         return [
@@ -222,6 +223,7 @@ def search_by_project_tech(tech: str, limit: int = 20) -> list[dict]:
             .distinct()
             .limit(limit)
         )
+        query = _apply_department_scope(query)
         candidates = session.execute(query).scalars().all()
         logger.info("search_by_project_tech: %r -> %d kết quả", tech, len(candidates))
         return [
@@ -240,7 +242,7 @@ def count_candidate_stats(
             all_terms: list[str] = []
             for s in skills:
                 all_terms.extend(expand_search_terms(s))
-            skills_conditions = [CandidateSkill.skill_name.ilike(f"%{t}") for t in all_terms]
+            skills_conditions = [CandidateSkill.skill_name.ilike(f"%{t}%") for t in all_terms]
             query = query.select_from(Candidate).join(CandidateSkill).where(or_(*skills_conditions))
         if min_years_experience is not None:
             query = query.where(Candidate.total_years_experience >= min_years_experience)

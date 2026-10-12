@@ -1,5 +1,6 @@
 import logging
 
+from src.auth.service import admin_only
 from src.interview.question_generator import (
     CandidateNotFoundError,
     CandidateHasNoCVError,
@@ -11,6 +12,7 @@ from src.interview.question_generator import (
 logger = logging.getLogger(__name__)
 
 
+@admin_only
 def generate_questions_for_candidate(candidate_id: str, max_questions: int = 8) -> dict:
     try:
         questions = generate_interview_questions(candidate_id, max_questions=max_questions)
@@ -24,8 +26,8 @@ def generate_questions_for_candidate(candidate_id: str, max_questions: int = 8) 
         return {"questions": [], "error": str(e)}
 
 
+@admin_only
 def get_questions_for_candidate(candidate_id: str) -> dict:
-    """Đọc lại câu hỏi đã sinh sẵn (nếu có), không sinh mới."""
     try:
         questions = get_interview_questions(candidate_id)
         return {"questions": questions, "error": None}
@@ -34,6 +36,7 @@ def get_questions_for_candidate(candidate_id: str) -> dict:
         return {"questions": [], "error": str(e)}
 
 
+@admin_only
 def delete_questions_for_candidate(candidate_id: str) -> dict:
     try:
         count = delete_interview_questions(candidate_id)

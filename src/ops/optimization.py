@@ -1,11 +1,15 @@
 import hashlib
 import json
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Integer, select
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.db.models import Base
+from src.auth.service import admin_only
+from src.llm.prompt_store import format_prompt
 
 
 class OptimizationConfig(Base):
@@ -25,10 +29,18 @@ class OptimizationPointer(Base):
     config_id = Column(String(36))
 
 
-DEFAULTS = {"extraction_model": None, "cache_enabled": False, "retrieval_multiplier": 2}
+LEGACY_EXTRACTION_PROMPT_COMMIT = "55c22bda"
+DEFAULTS = {
+    "extraction_model": None,
+    "extraction_prompt_version": LEGACY_EXTRACTION_PROMPT_COMMIT,
+    "cache_enabled": False,
+    "retrieval_multiplier": 2,
+}
 
 
 def validate_config(config):
+    if not isinstance(config, dict):
+        raise ValueError("Configuration must be an object")
     if set(config) - set(DEFAULTS):
         raise ValueError("Unsupported configuration keys")
 
@@ -42,6 +54,10 @@ def validate_config(config):
     if value["extraction_model"] is not None and (not isinstance(value["extraction_model"], str) or not value["extraction_model"].strip()):
         raise ValueError("Invalid model")
 
+    version = value["extraction_prompt_version"]
+    if not isinstance(version, str) or not re.fullmatch(r"[0-9a-f]{8,40}", version):
+        raise ValueError("Extraction prompt version must be a pinned LangSmith commit")
+
     return value
 
 
@@ -51,13 +67,23 @@ def active_config():
     try:
         with SessionLocal() as session:
             pointer = session.get(OptimizationPointer, 1)
-            row = session.get(OptimizationConfig, pointer.config_id) if pointer and pointer.config_id else None
-            return validate_config(json.loads(row.settings_json)) if row else dict(DEFAULTS)
+            if pointer is None or pointer.config_id is None:
+                return dict(DEFAULTS)
+            config_id = pointer.config_id
+            row = session.get(OptimizationConfig, config_id)
+            if row is None:
+                raise LookupError(f"Active optimization config {config_id!r} is missing")
+            settings_json = row.settings_json
+    except SQLAlchemyError as exc:
+        raise RuntimeError("Could not read active optimization config from the database") from exc
 
-    except Exception:
-        return dict(DEFAULTS)
+    try:
+        return validate_config(json.loads(settings_json))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"Active optimization config {config_id!r} is invalid: {exc}") from exc
 
 
+@admin_only
 def propose(config):
     from src.db.session import SessionLocal
 
@@ -69,6 +95,7 @@ def propose(config):
         return identifier
 
 
+@admin_only
 def approve(identifier):
     from src.db.session import SessionLocal
 
@@ -82,7 +109,13 @@ def approve(identifier):
             raise ValueError("Run an experiment first")
 
         report = json.loads(row.report_json)
-        if not report.get("passed") or report.get("baseline_config_id") != pointer.config_id:
+        baseline_row = session.get(OptimizationConfig, pointer.config_id) if pointer.config_id else None
+        baseline = validate_config(json.loads(baseline_row.settings_json)) if baseline_row else dict(DEFAULTS)
+        proposed = validate_config(json.loads(row.settings_json))
+        if (not report.get("passed")
+                or report.get("baseline_config_id") != pointer.config_id
+                or report.get("baseline_config") != baseline
+                or report.get("proposed_config") != proposed):
             raise ValueError("Experiment failed or baseline changed; rerun experiment")
 
         row.status = "approved"
@@ -90,6 +123,7 @@ def approve(identifier):
         session.commit()
 
 
+@admin_only
 def rollback(identifier=None):
     from src.db.session import SessionLocal
 
@@ -133,6 +167,7 @@ def cached_extract(text, model, prompt, schema, compute, enabled):
     return result
 
 
+@admin_only
 def analyze_usage():
     from sqlalchemy import func
     from src.db.models import LLMUsageLog
@@ -157,9 +192,11 @@ def analyze_usage():
 
     allowed_models = [x.strip() for x in os.getenv("OPS_ROUTING_MODELS",
                                                    get_settings().GEMINI_LLM_MODEL).split(",") if x.strip()]
-    prompt = "Suggest extraction optimization from aggregate usage. No activation. Models allowed: " + \
-        json.dumps(allowed_models) + ". Do not claim measured savings or quality. Enable exact cache only if useful. Data: " + \
-        json.dumps([list(row) for row in rows], default=str)
+    prompt = format_prompt(
+        "cv-rag-optimization-analysis",
+        allowed_models=json.dumps(allowed_models),
+        usage_data=json.dumps([list(row) for row in rows], default=str),
+    )
     model = get_settings().GEMINI_LLM_MODEL
 
     with operation_scope("optimization_analysis"):

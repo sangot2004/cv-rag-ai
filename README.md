@@ -245,3 +245,23 @@ Tự động tuân theo phân quyền department (tái sử dụng `_is_candidat
 ## AI Observability — Phase 1 + 2
 
 See [OPS_SETUP.md](OPS_SETUP.md) for migration, pricing, dashboard and limitations.
+
+## Prompt trên LangSmith
+
+Ứng dụng kéo 9 prompt riêng tư từ LangSmith theo commit cố định trong
+`src/llm/prompt_store.py`. Cấu hình `.env` cần có `LANGSMITH_API_KEY` của đúng
+workspace. Kiểm tra quyền truy cập và các commit trước khi chạy app/worker:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/check_langsmith_prompts.py
+```
+
+Lệnh này cũng đọc cấu hình Ops đang active từ database để kiểm tra commit
+extraction đã được duyệt; cần chạy migration và kết nối database trước.
+
+Nội dung prompt được chỉnh trên LangSmith; các script đẩy từ source lên Hub
+đã được bỏ sau lần chuyển đổi này. Với prompt trích xuất CV, nhập commit mới
+trong tab Ops, chạy paired experiment trên dataset chuẩn, rồi Approve để kích
+hoạt. Cache Redis dùng chính prompt đã gửi Gemini làm một phần khóa; rollback
+về cấu hình cũ sẽ dùng lại commit cũ. Các prompt khác dùng commit đã ghim trong
+`DEFAULT_PROMPT_COMMITS`; chỉ thay commit sau khi kiểm tra phiên bản mới.

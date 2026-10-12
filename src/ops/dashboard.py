@@ -4,13 +4,15 @@ import pandas as pd
 import streamlit as st
 from sqlalchemy import select
 
+from src.auth.service import admin_only
 from src.db.models import LLMUsageLog, IngestionJob
 from src.db.session import SessionLocal
 
 
+@admin_only
 def render_ops_dashboard():
     st.subheader("📊 System Ops")
-    st.caption("Chi phí ước tính USD theo cấu hình giá; không phải hóa đơn. Thời gian UTC. Dashboard demo chưa có đăng nhập admin.")
+    st.caption("Chi phí ước tính USD theo cấu hình giá; không phải hóa đơn. Thời gian UTC. Chỉ admin có quyền truy cập.")
     days = st.selectbox("Khoảng thời gian", [1, 7, 30], format_func=lambda n: f"{n} ngày", key="ops_days")
     if st.button("Làm mới", key="ops_refresh"):
         st.rerun()

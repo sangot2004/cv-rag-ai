@@ -1,5 +1,6 @@
 import logging
 
+from src.auth.service import admin_only
 from src.agent.router import ask
 from src.agent.router import resume as _router_resume
 from src.evaluation.evaluator import evaluate_candidate
@@ -14,7 +15,7 @@ def query_candidates(question: str, thread_id: str = "default", department_id: s
         response = ask(question, thread_id=thread_id, department_id=department_id)
         return {**response, "error": None}
     except Exception as e:
-        logger.exception("query_candidates lỗi với question=%r", question)
+        logger.exception("query_candidates lỗi với thread_id=%r", thread_id)
         return {"type": "error", "content": None, "error": str(e)}
 
 
@@ -34,6 +35,7 @@ def resume_confirmation(
         return {"type": "error", "content": None, "error": str(e)}
 
 
+@admin_only
 def evaluate_candidate_for_job(candidate_id: str, job_description: str) -> dict:
     try:
         result = evaluate_candidate(candidate_id, job_description)
@@ -45,6 +47,7 @@ def evaluate_candidate_for_job(candidate_id: str, job_description: str) -> dict:
         return {"error": str(e)}
 
 
+@admin_only
 def parse_jd(jd_raw_text: str) -> dict:
     try:
         jd = extract_jd_data(jd_raw_text)
@@ -54,6 +57,7 @@ def parse_jd(jd_raw_text: str) -> dict:
         return {"error": str(e)}
 
 
+@admin_only
 def rank_top_candidates(jd: dict, top_k: int = 5) -> dict:
     from src.schemas.jd_schema import JDSchema
 

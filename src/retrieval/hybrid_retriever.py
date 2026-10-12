@@ -1,7 +1,9 @@
 import logging
 
+from qdrant_client.models import FieldCondition, Filter, MatchAny
+
 from src.ingestion.embedding.embedder import embed_query
-from src.retrieval.bm25_index import search_bm25
+from src.retrieval.bm25_index import _tokenize, load_index, search_bm25
 from src.retrieval.sql_query_tool import get_allowed_candidate_ids
 from src.vectorstore.qdrant_client import QdrantStore
 
@@ -24,6 +26,46 @@ def _normalize_scores(results: list[dict]) -> list[dict]:
     return results
 
 
+def _search_vectors_allowed(store: QdrantStore, query_vector: list[float],
+                            top_k: int, allowed_ids: set[str]) -> list[dict]:
+    """Apply the department filter in Qdrant before its result limit."""
+    result = store.client.query_points(
+        collection_name=store.collection,
+        query=query_vector,
+        limit=top_k,
+        query_filter=Filter(must=[FieldCondition(
+            key="candidate_id", match=MatchAny(any=sorted(allowed_ids))
+        )]),
+        with_payload=True,
+    )
+    return [
+        {"chunk_id": str(point.id), "score": point.score, "payload": point.payload}
+        for point in result.points
+    ]
+
+
+def _search_bm25_allowed(query: str, top_k: int, allowed_ids: set[str]) -> list[dict]:
+    """Rank only permitted chunks so global BM25 hits cannot fill the limit."""
+    index = load_index()
+    if index is None:
+        return []
+
+    scores = index["bm25"].get_scores(_tokenize(query))
+    ranked = sorted(
+        (
+            (chunk_id, score, payload)
+            for chunk_id, score, payload in zip(index["chunk_ids"], scores, index["payloads"])
+            if score > 0 and payload.get("candidate_id") in allowed_ids
+        ),
+        key=lambda row: row[1],
+        reverse=True,
+    )[:top_k]
+    return [
+        {"chunk_id": chunk_id, "score": float(score), "payload": payload}
+        for chunk_id, score, payload in ranked
+    ]
+
+
 def hybrid_search(
         query: str,
         top_k: int = 10,
@@ -39,13 +81,29 @@ def hybrid_search(
     """
     from src.ops.optimization import active_config
 
+    allowed_ids = get_allowed_candidate_ids()
+    if allowed_ids is not None:
+        if not allowed_ids or (candidate_id is not None and candidate_id not in allowed_ids):
+            return []
+
+    search_ids = {candidate_id} if candidate_id else allowed_ids
     multiplier = active_config()["retrieval_multiplier"]
     query_vector = embed_query(query)
-    vector_results = QdrantStore().search(query_vector, top_k=top_k * multiplier, candidate_id=candidate_id)
-    bm25_results = search_bm25(query, top_k=top_k * multiplier)
+    pool_size = top_k * multiplier
+    store = QdrantStore()
+    if allowed_ids is not None and candidate_id is None:
+        vector_results = _search_vectors_allowed(store, query_vector, pool_size, allowed_ids)
+    else:
+        vector_results = store.search(query_vector, top_k=pool_size, candidate_id=candidate_id)
 
-    if candidate_id:
-        bm25_results = [r for r in bm25_results if r["payload"].get("candidate_id") == candidate_id]
+    if search_ids is None:
+        bm25_results = search_bm25(query, top_k=pool_size)
+    else:
+        bm25_results = _search_bm25_allowed(query, pool_size, search_ids)
+
+    if search_ids is not None:
+        vector_results = [r for r in vector_results if r["payload"].get("candidate_id") in search_ids]
+        bm25_results = [r for r in bm25_results if r["payload"].get("candidate_id") in search_ids]
 
     vector_results = _normalize_scores(vector_results)
     bm25_results = _normalize_scores(bm25_results)
@@ -68,14 +126,6 @@ def hybrid_search(
             }
 
     ranked = sorted(merged.values(), key=lambda x: x["combined_score"], reverse=True)[:top_k]
-
-    allowed_ids = get_allowed_candidate_ids()
-    if allowed_ids is not None:
-        before = len(ranked)
-        ranked = [r for r in ranked if r["payload"].get("candidate_id") in allowed_ids]
-        logger.info("hybrid_search: lọc theo department scope %d -> %d kết quả", before, len(ranked))
-
-    ranked = ranked[:top_k]
 
     logger.info(
         "hybrid_search query=%r ->%d vector + %d bm25 -> %d merged",

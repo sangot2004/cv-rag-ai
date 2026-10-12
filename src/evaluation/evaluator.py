@@ -6,26 +6,11 @@ from src.ops.telemetry import monitored, UsageCallback
 from src.config.settings import get_settings
 from src.evaluation.rubric import DEFAULT_CRITERIA, EvaluationResult
 from src.llm.key_manager import call_with_key_failover
+from src.llm.prompt_store import format_prompt
 from src.retrieval.sql_query_tool import get_candidate_full_profile
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-
-EVALUATE_PROMPT = """Đánh giá mức độ phù hợp của ứng viên sau với JD, CHỈ dựa trên
-{criteria_list}.
-Chấm mỗi tiêu chí thang điểm 1-5, kèm lý do NGẮN GỌN dựa trên dữ liệu CV cụ thể
-bên dưới — không suy diễn thông tin CV không có.
-
-JD:
----
-{jd}
----
-
-Hồ sơ ứng viên (candidate_id={candidate_id}):
----
-{profile}
----"""
 
 
 def _evaluate_call(api_key: str, prompt: str) -> EvaluationResult:
@@ -45,7 +30,8 @@ def evaluate_candidate(candidate_id: str, job_description: str) -> EvaluationRes
         return None
 
     criteria_list = "\n".join(f"- {c}" for c in DEFAULT_CRITERIA)
-    prompt = EVALUATE_PROMPT.format(
+    prompt = format_prompt(
+        "cv-rag-evaluate-candidate",
         criteria_list=criteria_list,
         jd=job_description,
         candidate_id=candidate_id,

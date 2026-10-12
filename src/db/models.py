@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    Boolean,
     CHAR,
     DATE,
     DATETIME,
@@ -231,14 +232,36 @@ class CandidateChunk(Base):
     candidate: Mapped["Candidate"] = relationship(back_populates="chunks")
 
 
+class AppUser(Base):
+    __tablename__ = "app_users"
+    user_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    username: Mapped[str] = mapped_column(VARCHAR(100), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    role: Mapped[str] = mapped_column(VARCHAR(20), nullable=False)
+    department_id: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("departments.department_id"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    failed_attempts: Mapped[int] = mapped_column(INT, default=0, nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DATETIME)
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    token_hash: Mapped[str] = mapped_column(CHAR(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("app_users.user_id"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DATETIME, nullable=False)
+
+
 class ChatConversation(Base):
     __tablename__ = "chat_conversations"
+    owner_user_id: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("app_users.user_id"), index=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DATETIME)
 
     thread_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
     title: Mapped[str] = mapped_column(VARCHAR(255), nullable=False, default="Cuộc trò chuyện mới")
-    created_at: Mapped[datetime] = mapped_column(DATETIME, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DATETIME, default=datetime.utcnow, onupdate=datetime.utcnow
+        DATETIME, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
 
 

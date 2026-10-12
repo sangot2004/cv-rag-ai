@@ -21,20 +21,11 @@ from src.agent.tools.search_tool import semantic_search_cv
 from src.agent.tools.sql_filter_tool import filter_candidates_sql
 from src.agent.tools.stats_tool import count_candidates
 from src.config.settings import get_settings
+from src.llm.prompt_store import get_prompt_text
 
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-SYSTEM_PROMPT = """Bạn là trợ lý AI hỗ trợ HR tra cứu và đánh giá ứng viên
-trong hệ thống quản lý CV. Bạn có các công cụ để tra cứu dữ liệu ứng viên.
-
-Luôn ưu tiên công cụ filter/tìm kiếm chính xác nếu câu hỏi có thể trả lời
-bằng tiêu chí rõ ràng — nhanh và chính xác hơn semantic search. Trả lời
-bằng tiếng Việt, ngắn gọn, dựa trên dữ liệu tool trả về — không bịa thông
-tin ứng viên không có trong kết quả tool. Nếu câu hỏi tiếp nối hội thoại
-trước đó (vd "còn ai khác", "so với người vừa nãy"), dùng ngữ cảnh hội
-thoại đã có để hiểu đúng ý người hỏi."""
 
 _tools = [
     filter_candidates_sql,
@@ -54,9 +45,16 @@ _tools = [
 ]
 
 
-def build_agent_executor(api_key: str, checkpointer=None):
+def build_agent_executor(api_key: str, checkpointer=None, role="admin"):
+    tools = _tools if role == "admin" else [tool for tool in _tools if tool not in (
+        draft_interview_invitation, draft_bulk_interview_invitations,
+        generate_interview_questions_for_candidate)]
+
     llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     return create_agent(
-        model=llm, tools=_tools, system_prompt=SYSTEM_PROMPT, checkpointer=checkpointer
+        model=llm,
+        tools=tools,
+        system_prompt=get_prompt_text("cv-rag-agent-system"),
+        checkpointer=checkpointer,
     )

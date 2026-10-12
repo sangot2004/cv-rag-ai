@@ -1,34 +1,40 @@
 import logging
+from threading import Lock
 
-from langgraph.checkpoint.sqlite import SqliteSaver
+from src.chat.checkpoints import get_checkpointer
+from src.auth.service import require_user, resolve_department
 from langgraph.types import Command
 
 from src.ops.telemetry import monitored
 from src.agent.agent_executor import build_agent_executor
-from src.chat.conversation_store import touch_conversation
+from src.chat.conversation_store import touch_conversation, require_conversation
 from src.llm.key_manager import get_key_manager, is_quota_error
+from src.llm.prompt_store import get_prompt_commit
 from src.retrieval.access_scope import department_scope
 
 logger = logging.getLogger(__name__)
 
-_checkpointer_cm = SqliteSaver.from_conn_string("chat_history.db")
-_checkpointer = _checkpointer_cm.__enter__()
-
+_graph_lock = Lock()
 _graph = None
-_graph_key: str | None = None
+_graph_key: tuple[str, str, str] | None = None
 
 
 def _get_graph():
     """Lazy build — tránh khởi tạo LLM client lúc import module."""
     global _graph, _graph_key
+    user = require_user()
     current_key = get_key_manager().get_current_key()
-    if _graph is None or _graph_key != current_key:
-        _graph = build_agent_executor(current_key, checkpointer=_checkpointer)
-        _graph_key = current_key
-    return _graph
+    graph_identity = (current_key, user.role, get_prompt_commit("cv-rag-agent-system"))
+
+    with _graph_lock:
+        if _graph is None or _graph_key != graph_identity:
+            _graph = build_agent_executor(current_key, checkpointer=get_checkpointer(), role=user.role)
+            _graph_key = graph_identity
+        return _graph
 
 
 def get_conversation_messages(thread_id: str) -> list[dict]:
+    require_conversation(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     try:
         state = _get_graph().get_state(config)
@@ -51,6 +57,7 @@ def get_conversation_messages(thread_id: str) -> list[dict]:
 
 
 def has_pending_confirmation(thread_id: str) -> dict | None:
+    require_conversation(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     try:
         state = _get_graph().get_state(config)
@@ -74,7 +81,9 @@ def _build_response(result: dict) -> dict:
 
 
 @monitored('agent_chat', ref='thread_id')
-def ask(question: str, thread_id: str = "default", department_id: str | None = None) -> dict:
+def ask(question: str, thread_id: str, department_id: str | None = None) -> dict:
+    require_conversation(thread_id)
+    department_id = resolve_department(department_id)
     logger.info("Agent nhận câu hỏi (thread_id=%s, department_id=%s): %r", thread_id, department_id, question)
 
     manager = get_key_manager()
@@ -111,6 +120,8 @@ def resume(
         edited_criteria: dict | None = None,
         department_id: str | None = None,
 ) -> dict:
+    require_conversation(thread_id)
+    department_id = resolve_department(department_id)
     manager = get_key_manager()
     config = {"configurable": {"thread_id": thread_id}}
     resume_value = {"confirmed": confirmed, "edited_criteria": edited_criteria}

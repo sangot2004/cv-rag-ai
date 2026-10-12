@@ -1,9 +1,12 @@
 import logging
 import uuid
 
+from src.auth.service import admin_only
+
 logger = logging.getLogger(__name__)
 
 
+@admin_only
 def dispatch_bulk_emails(email_batch: list[dict]) -> dict:
     from src.workers.celery_app import celery_app
 
@@ -16,6 +19,7 @@ def dispatch_bulk_emails(email_batch: list[dict]) -> dict:
     return {"batch_id": batch_id, "task_id": task.id, "count": len(email_batch)}
 
 
+@admin_only
 def get_batch_status(batch_id: str) -> dict:
     from src.db.models import SentEmail
     from src.db.session import SessionLocal

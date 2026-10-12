@@ -7,8 +7,8 @@ from src.ops.telemetry import monitored, UsageCallback
 from src.config.settings import get_settings
 from src.db.models import InterviewQuestion
 from src.db.session import SessionLocal
-from src.interview.prompts import GENERATE_INTERVIEW_QUESTIONS_PROMPT
 from src.llm.key_manager import call_with_key_failover
+from src.llm.prompt_store import format_prompt
 from src.retrieval.sql_query_tool import get_candidate_raw_text
 from src.schemas.interview_question_schema import QuestionList
 
@@ -26,7 +26,10 @@ def _generate_call(api_key: str, cv_text: str, max_questions: int) -> QuestionLi
     llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     structured_llm = llm.with_structured_output(QuestionList)
-    prompt = GENERATE_INTERVIEW_QUESTIONS_PROMPT.format(cv_text=cv_text, max_questions=max_questions)
+    prompt = format_prompt(
+        "cv-rag-generate-interview-questions",
+        cv_text=cv_text, max_questions=max_questions
+    )
     return structured_llm.invoke(prompt)
 
 

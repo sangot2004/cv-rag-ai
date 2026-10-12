@@ -7,13 +7,13 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(name="src.workers.tasks_notification.send_bulk_emails")
 def send_bulk_emails(email_batch: list[dict], batch_id: str) -> dict:
-    from src.notification.email_sender import send_interview_invitation
+    from src.notification.email_sender import _deliver_interview_invitation
 
     results = {"success": 0, "failed": 0, "details": []}
 
     for item in email_batch:
         try:
-            result = send_interview_invitation(
+            result = _deliver_interview_invitation(
                 item["candidate_id"], item["subject"], item["body"], batch_id=batch_id
             )
             if result["success"]:

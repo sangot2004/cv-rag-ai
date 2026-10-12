@@ -1,23 +1,55 @@
-"""
-Unit test cho src/retrieval/access_scope.py + việc áp dụng scope vào MỌI
-đường dữ liệu — được viết SAU KHI phát hiện lỗ hổng thật: lần đầu code chỉ
-áp department scope cho 3/10 tool (search_candidates_sql, count_candidates_stats,
-list_recent_candidates), bỏ sót 6 tool còn lại (semantic_search_cv,
-get_candidate_detail, compare_candidates, find_candidates_by_certificate,
-find_candidates_by_project_tech, evaluate_candidate_against_jd) — Agent có
-thể lách qua giới hạn phòng ban chỉ bằng cách đổi sang gọi 1 trong 6 tool đó.
+"""Department-scoped retrieval regressions using synthetic candidates only."""
 
-Test này đảm bảo KHÔNG hàm nào trong toàn bộ retrieval/ bị bỏ sót nữa.
-
-Chạy: pytest tests/test_access_scope.py -v
-"""
-
-from src.retrieval.access_scope import current_department_id, department_scope
-import pytest
-import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, ".")
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from src.db.models import (
+    Base, Candidate, CandidateCertificate, CandidateProject, CandidateSkill,
+    Department, IngestionJob, JobPosting,
+)
+from src.retrieval.access_scope import current_department_id, department_scope
+
+
+@pytest.fixture
+def candidates_db(monkeypatch):
+    from src.retrieval import sql_query_tool
+
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+    monkeypatch.setattr(sql_query_tool, "SessionLocal", factory)
+
+    with factory() as db:
+        db.add_all([
+            Department(department_id="dept-A", department_name="A"),
+            Department(department_id="dept-B", department_name="B"),
+            JobPosting(posting_id="posting-A", department_id="dept-A", position_title="Engineer"),
+            JobPosting(posting_id="posting-B", department_id="dept-B", position_title="Engineer"),
+            IngestionJob(job_id="job", source_type="upload", source_reference="synthetic",
+                         minio_bucket="test", minio_object_key="test", original_filename="test.pdf",
+                         file_type="pdf"),
+        ])
+        db.flush()
+        db.add_all([
+            Candidate(candidate_id="local", full_name="Local", posting_id="posting-A", source_job_id="job"),
+            Candidate(candidate_id="foreign", full_name="Foreign", posting_id="posting-B", source_job_id="job"),
+            Candidate(candidate_id="unassigned", full_name="Unassigned", source_job_id="job"),
+        ])
+        db.flush()
+        for candidate_id in ("local", "foreign", "unassigned"):
+            db.add_all([
+                CandidateCertificate(candidate_id=candidate_id, name="AWS Certified"),
+                CandidateProject(candidate_id=candidate_id, name="Demo", tech_stack="Kubernetes"),
+                CandidateSkill(candidate_id=candidate_id, skill_name="Python developer"),
+            ])
+        db.commit()
+
+    yield sql_query_tool
+    engine.dispose()
 
 
 class TestDepartmentScope:
@@ -70,6 +102,26 @@ class TestGetAllowedCandidateIds:
             assert result == {"c1", "c2"}
 
 
+@pytest.mark.parametrize(
+    ("method", "term"),
+    [("search_by_certificate", "AWS"), ("search_by_project_tech", "Kubernetes")],
+)
+def test_specialized_queries_restrict_department_and_limit(candidates_db, method, term):
+    search = getattr(candidates_db, method)
+    with department_scope("dept-A"):
+        assert {r["candidate_id"] for r in search(term, limit=1)} == {"local"}
+    with department_scope("dept-B"):
+        assert {r["candidate_id"] for r in search(term, limit=1)} == {"foreign"}
+    with department_scope(None):
+        assert {r["candidate_id"] for r in search(term)} == {"local", "foreign", "unassigned"}
+
+
+def test_skill_count_matches_substring_search_within_department(candidates_db):
+    with department_scope("dept-A"):
+        assert candidates_db.count_candidate_stats(skills=["Python"])["count"] == 1
+        assert {r["candidate_id"] for r in candidates_db.search_candidates_sql(skills=["Python"])} == {"local"}
+
+
 class TestHybridSearchAppliesScope:
     """Đây chính là test tái hiện đúng lỗ hổng đã fix — semantic_search_cv
     (qua hybrid_search) trước đó KHÔNG hề lọc theo department.
@@ -77,18 +129,18 @@ class TestHybridSearchAppliesScope:
 
     def test_filters_results_outside_allowed_scope(self):
         with patch("src.retrieval.hybrid_retriever.embed_query", return_value=[0.1, 0.2]), \
-            patch(
-            "src.retrieval.hybrid_retriever.QdrantStore"
-        ) as mock_store_cls, \
-            patch("src.retrieval.hybrid_retriever.search_bm25", return_value=[]), \
+            patch("src.retrieval.hybrid_retriever.QdrantStore") as mock_store_cls, \
+            patch("src.retrieval.hybrid_retriever.load_index", return_value=None), \
+            patch("src.ops.optimization.active_config", return_value={"retrieval_multiplier": 2}), \
             patch(
             "src.retrieval.hybrid_retriever.get_allowed_candidate_ids",
             return_value={"allowed-1"},
         ):
             mock_store = MagicMock()
-            mock_store.search.return_value = [
-                {"chunk_id": "x1", "payload": {"candidate_id": "allowed-1"}, "score": 0.9},
-                {"chunk_id": "x2", "payload": {"candidate_id": "NOT_ALLOWED"}, "score": 0.95},
+            mock_store.collection = "test"
+            mock_store.client.query_points.return_value.points = [
+                SimpleNamespace(id="x1", payload={"candidate_id": "allowed-1"}, score=0.9),
+                SimpleNamespace(id="x2", payload={"candidate_id": "NOT_ALLOWED"}, score=0.95),
             ]
             mock_store_cls.return_value = mock_store
 
@@ -99,11 +151,53 @@ class TestHybridSearchAppliesScope:
             candidate_ids_returned = {r["payload"]["candidate_id"] for r in results}
             assert candidate_ids_returned == {"allowed-1"}
             assert "NOT_ALLOWED" not in candidate_ids_returned
+            query_filter = mock_store.client.query_points.call_args.kwargs["query_filter"]
+            assert query_filter.must[0].match.any == ["allowed-1"]
+
+    def test_local_hit_survives_foreign_hit_above_top_k(self):
+        with patch("src.retrieval.hybrid_retriever.embed_query", return_value=[0.1]), \
+            patch("src.retrieval.hybrid_retriever.QdrantStore") as mock_store_cls, \
+            patch("src.retrieval.hybrid_retriever.load_index", return_value=None), \
+            patch("src.retrieval.hybrid_retriever.get_allowed_candidate_ids", return_value={"local"}), \
+            patch("src.ops.optimization.active_config", return_value={"retrieval_multiplier": 2}):
+            mock_store = mock_store_cls.return_value
+            mock_store.collection = "test"
+            mock_store.client.query_points.return_value.points = [
+                SimpleNamespace(id="foreign-chunk", payload={"candidate_id": "foreign"}, score=0.99),
+                SimpleNamespace(id="local-chunk", payload={"candidate_id": "local"}, score=0.98),
+            ]
+            from src.retrieval.hybrid_retriever import hybrid_search
+
+            results = hybrid_search("test query", top_k=1)
+            assert [r["chunk_id"] for r in results] == ["local-chunk"]
+            assert mock_store.client.query_points.call_args.kwargs["query_filter"].must[0].match.any == ["local"]
+
+    def test_bm25_ranks_permitted_chunks_before_limit(self):
+        index = {
+            "bm25": SimpleNamespace(get_scores=lambda _: [10, 9, 8]),
+            "chunk_ids": ["foreign-1", "foreign-2", "local-chunk"],
+            "payloads": [
+                {"candidate_id": "foreign"},
+                {"candidate_id": "foreign"},
+                {"candidate_id": "local"},
+            ],
+        }
+        with patch("src.retrieval.hybrid_retriever.embed_query", return_value=[0.1]), \
+            patch("src.retrieval.hybrid_retriever.QdrantStore") as mock_store_cls, \
+            patch("src.retrieval.hybrid_retriever.load_index", return_value=index), \
+            patch("src.retrieval.hybrid_retriever.get_allowed_candidate_ids", return_value={"local"}), \
+            patch("src.ops.optimization.active_config", return_value={"retrieval_multiplier": 2}):
+            mock_store_cls.return_value.client.query_points.return_value.points = []
+            from src.retrieval.hybrid_retriever import hybrid_search
+
+            results = hybrid_search("test query", top_k=1)
+            assert [r["chunk_id"] for r in results] == ["local-chunk"]
 
     def test_no_filtering_when_no_scope(self):
         with patch("src.retrieval.hybrid_retriever.embed_query", return_value=[0.1, 0.2]), \
                 patch("src.retrieval.hybrid_retriever.QdrantStore") as mock_store_cls, \
                 patch("src.retrieval.hybrid_retriever.search_bm25", return_value=[]), \
+                patch("src.ops.optimization.active_config", return_value={"retrieval_multiplier": 2}), \
                 patch("src.retrieval.hybrid_retriever.get_allowed_candidate_ids", return_value=None):
             mock_store = MagicMock()
             mock_store.search.return_value = [

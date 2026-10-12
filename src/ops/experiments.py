@@ -3,6 +3,7 @@ import time
 
 from sqlalchemy import select
 from src.ops.optimization import OptimizationConfig, OptimizationPointer
+from src.auth.service import admin_only
 
 
 def flatten(value, prefix=""):
@@ -10,6 +11,8 @@ def flatten(value, prefix=""):
         return {k: v for key, child in value.items() for k, v in flatten(child, prefix + "/" + str(key)).items()}
 
     if isinstance(value, list):
+        if not value:
+            return {prefix: []}
         return {k: v for i, child in enumerate(value) for k, v in flatten(child, prefix + "/" + str(i)).items()}
 
     return {prefix: value}
@@ -19,6 +22,27 @@ def normalize(value):
     if isinstance(value, str):
         return " ".join(value.split()).casefold()
     return value
+
+
+def _extra_list_leaves(actual, expected, prefix=""):
+    """Count fabricated list content without penalizing unspecified scalar fields."""
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return 0
+        return sum(
+            _extra_list_leaves(actual[key], child, prefix + "/" + str(key))
+            for key, child in expected.items()
+            if key in actual and prefix + "/" + str(key) != "/skills"
+        )
+
+    if isinstance(expected, list) and isinstance(actual, list):
+        extra = sum(max(1, len(flatten(item))) for item in actual[len(expected):])
+        return extra + sum(
+            _extra_list_leaves(actual_item, expected_item, prefix + "/" + str(index))
+            for index, (actual_item, expected_item) in enumerate(zip(actual, expected))
+        )
+
+    return 0
 
 
 def score(actual, expected):
@@ -36,7 +60,7 @@ def score(actual, expected):
         and normalize(predicted[key]) == normalize(value)
         for key, value in truth.items()
     )
-    total = len(truth)
+    total = len(truth) + _extra_list_leaves(actual, expected)
 
     if "skills" in expected:
         expected_skills = {
@@ -63,12 +87,14 @@ def score(actual, expected):
     return matched / total if total else 0.0
 
 
+@admin_only
 def run_experiment(identifier, dataset_name):
     from langsmith import Client
 
     from src.db.session import SessionLocal
     from src.ops.optimization import validate_config, DEFAULTS
     from src.config.settings import get_settings
+    from src.llm.prompt_store import get_prompt_text
     from src.schemas.cv_schema import CVSchema
     from src.ingestion.extraction.llm_extractor import _extract_call
     from src.llm.key_manager import call_with_key_failover
@@ -99,11 +125,18 @@ def run_experiment(identifier, dataset_name):
     if proposed["retrieval_multiplier"] != baseline["retrieval_multiplier"]:
         raise ValueError("Retrieval changes require a labeled retrieval experiment; unsupported by this runner")
 
+    prompt_templates = {
+        label: get_prompt_text("cv-rag-extract-cv", commit=config["extraction_prompt_version"])
+        for label, config in (("baseline", baseline), ("proposal", proposed))
+    }
+
     from langsmith import traceable
 
     @traceable(name="ops_extraction_evaluation")
-    def evaluated_call(raw_text, model):
-        return call_with_key_failover(lambda key: _extract_call(key, raw_text, model))
+    def evaluated_call(raw_text, model, prompt_text):
+        return call_with_key_failover(
+            lambda key: _extract_call(key, raw_text, model, prompt_text=prompt_text)
+        )
 
     results = {}
     for label, config in [("baseline", baseline), ("proposal", proposed)]:
@@ -117,9 +150,21 @@ def run_experiment(identifier, dataset_name):
                 ok = False
                 try:
                     from langsmith import tracing_context
+                    prompt_text = prompt_templates[label].format(text=example.inputs["raw_text"])
                     with tracing_context(project_name=project.name, enabled=True):
-                        value = evaluated_call(example.inputs["raw_text"], config["extraction_model"] or get_settings().GEMINI_LLM_MODEL, langsmith_extra={
-                                               "reference_example_id": example.id, "metadata": {"proposal_id": identifier, "variant": label}})
+                        value = evaluated_call(
+                            example.inputs["raw_text"],
+                            config["extraction_model"] or get_settings().GEMINI_LLM_MODEL,
+                            prompt_text,
+                            langsmith_extra={
+                                "reference_example_id": example.id,
+                                "metadata": {
+                                    "proposal_id": identifier,
+                                    "variant": label,
+                                    "prompt_commit": config["extraction_prompt_version"],
+                                },
+                            },
+                        )
                     quality = score(value.model_dump(mode="json"), CVSchema.model_validate(
                         example.outputs).model_dump(mode="json"))
                     ok = True
@@ -138,7 +183,8 @@ def run_experiment(identifier, dataset_name):
                 measurements.append({"example_id": str(example.id), "quality": quality,
                                     "success": ok, "latency_ms": elapsed, "cost": cost, "tokens": tokens})
 
-        results[label] = {"project": project.name, "samples": measurements, "quality": sum(
+        results[label] = {"project": project.name, "prompt_commit": config["extraction_prompt_version"],
+                          "samples": measurements, "quality": sum(
             x["quality"] for x in measurements)/len(measurements), "success": all(x["success"] for x in measurements)}
 
     min_quality = 0.85
@@ -162,11 +208,13 @@ def run_experiment(identifier, dataset_name):
     improved = ((base_cost is not None and next_cost is not None and next_cost < base_cost)
                 or (base_tokens is not None and next_tokens is not None and next_tokens < base_tokens)
                 or next_latency < base_latency
+                or results["proposal"]["quality"] > results["baseline"]["quality"]
                 or (proposed == {**baseline, "cache_enabled": True} and not baseline["cache_enabled"]))
 
     passed = passed and improved
     report = {"improved": improved, "experiment_cost_usd": base_cost + next_cost if base_cost is not None and next_cost is not None else None, "baseline_config_id": baseline_id,
-              "dataset": dataset_name, "passed": passed, "results": results, "metric": "exact leaf match (list order sensitive); not semantic quality", "evaluated_at": time.time()}
+              "baseline_config": baseline, "proposed_config": proposed,
+              "dataset": dataset_name, "passed": passed, "results": results, "metric": "exact leaf match with extra list penalties (list order sensitive); skills Jaccard; not semantic quality", "evaluated_at": time.time()}
 
     with SessionLocal() as session:
         row = session.get(OptimizationConfig, identifier)

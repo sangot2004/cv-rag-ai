@@ -16,8 +16,6 @@ class EvaluationResult(BaseModel):
     summary: str = Field(description="Tóm tắt 2-3 câu, dùng để gửi Slack")
 
 
-# Rubric cố định — LLM chấm theo đúng các tiêu chí này, không tự bịa thêm
-# tiêu chí khác, để kết quả nhất quán giữa các lần chấm và giữa các candidate.
 DEFAULT_CRITERIA = [
     "Kỹ năng chuyên môn khớp với JD",
     "Số năm kinh nghiệm phù hợp với yêu cầu vị trí",
