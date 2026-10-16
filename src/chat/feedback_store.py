@@ -5,6 +5,7 @@ from src.db.models import ChatFeedback
 from src.db.session import SessionLocal
 from src.auth.service import admin_only
 from src.chat.conversation_store import require_conversation
+from src.chat.concurrency import conversation_lock
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,8 @@ def save_feedback(thread_id: str, question: str, answer: str, feedback: str) -> 
     safe_question = _ensure_string(question)
     safe_answer = _ensure_string(answer)
 
-    with SessionLocal() as session:
+    with conversation_lock(thread_id), SessionLocal() as session:
+        require_conversation(thread_id, session)
         session.add(
             ChatFeedback(
                 thread_id=thread_id,

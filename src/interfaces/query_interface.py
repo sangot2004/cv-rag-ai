@@ -24,10 +24,12 @@ def resume_confirmation(
         confirmed: bool,
         edited_criteria: dict | None = None,
         department_id: str | None = None,
+        confirmation_id: str | None = None,
 ) -> dict:
     try:
         response = _router_resume(
-            thread_id, confirmed=confirmed, edited_criteria=edited_criteria, department_id=department_id
+            thread_id, confirmed=confirmed, edited_criteria=edited_criteria, department_id=department_id,
+            confirmation_id=confirmation_id,
         )
         return {**response, "error": None}
     except Exception as e:

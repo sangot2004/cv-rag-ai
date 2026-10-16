@@ -10,6 +10,7 @@ from functools import wraps
 
 from src.db.models import AppUser, AuthSession, Department
 from src.db.session import SessionLocal
+from src.auth.errors import AccessDenied, AuthenticationRequired, Forbidden
 
 _token = ContextVar("token", default=None)
 
@@ -17,10 +18,6 @@ _token = ContextVar("token", default=None)
 def _utcnow_for_db():
     """Return UTC time without tzinfo to match SQL DATETIME values."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-class AccessDenied(PermissionError):
-    pass
 
 
 @dataclass(frozen=True)
@@ -66,10 +63,10 @@ def login(username, password):
 
         if user is None:
             verify_password(password, _DUMMY_HASH)
-            raise AccessDenied("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
+            raise AuthenticationRequired("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
 
         if not user.is_active or (user.locked_until and user.locked_until > now):
-            raise AccessDenied("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
+            raise AuthenticationRequired("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
 
         if not verify_password(password, user.password_hash):
             user.failed_attempts += 1
@@ -77,7 +74,7 @@ def login(username, password):
                 user.locked_until = now + timedelta(minutes=15)
                 user.failed_attempts = 0
             db.commit()
-            raise AccessDenied("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
+            raise AuthenticationRequired("Thông tin đăng nhập không hợp lệ hoặc tài khoản tạm khóa.")
 
         user.failed_attempts = 0
         user.locked_until = None
@@ -101,17 +98,17 @@ def logout(token):
 def require_user():
     token = _token.get()
     if not token:
-        raise AccessDenied("Bạn cần đăng nhập.")
+        raise AuthenticationRequired("Bạn cần đăng nhập.")
 
     with SessionLocal() as db:
         session = db.get(AuthSession, _digest(token))
         if session is None or session.expires_at <= _utcnow_for_db():
-            raise AccessDenied("Phiên đăng nhập đã hết hạn.")
+            raise AuthenticationRequired("Phiên đăng nhập đã hết hạn.")
         user = db.get(AppUser, session.user_id)
         if user is None or not user.is_active or user.role not in ("admin", "tester"):
-            raise AccessDenied("Tài khoản không còn quyền truy cập.")
+            raise AuthenticationRequired("Tài khoản không còn quyền truy cập.")
         if user.role == "tester" and not user.department_id:
-            raise AccessDenied("Tester chưa được gán phòng ban.")
+            raise AuthenticationRequired("Tester chưa được gán phòng ban.")
         return Identity(user.user_id, user.username, user.role, user.department_id)
 
 
@@ -127,7 +124,7 @@ def auth_scope(token):
 def require_admin():
     user = require_user()
     if user.role != "admin":
-        raise AccessDenied("Chức năng này chỉ dành cho admin.")
+        raise Forbidden("Chức năng này chỉ dành cho admin.")
     return user
 
 
@@ -145,9 +142,19 @@ def resolve_department(requested=None):
         return requested
 
     if requested is not None and requested != user.department_id:
-        raise AccessDenied("Không được đổi phạm vi phòng ban.")
+        raise Forbidden("Không được đổi phạm vi phòng ban.")
 
     return user.department_id
+
+
+def session_expiry(token):
+    """Return the actual persisted expiry for an authenticated session."""
+    require_user()
+    with SessionLocal() as db:
+        session = db.get(AuthSession, _digest(token))
+        if session is None or session.expires_at <= _utcnow_for_db():
+            raise AuthenticationRequired("Phiên đăng nhập đã hết hạn.")
+        return session.expires_at.replace(tzinfo=timezone.utc)
 
 
 def _create_user(username, password, role, department_id=None):

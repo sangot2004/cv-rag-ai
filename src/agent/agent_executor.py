@@ -45,16 +45,24 @@ _tools = [
 ]
 
 
-def build_agent_executor(api_key: str, checkpointer=None, role="admin"):
+class _ReadOnlyModel:
+    def bind_tools(self, tools, **kwargs):
+        return self
+
+    def invoke(self, *args, **kwargs):
+        raise RuntimeError("History reader cannot execute the agent")
+
+
+def build_agent_executor(api_key: str | None, checkpointer=None, role="admin", *, read_only=False):
     tools = _tools if role == "admin" else [tool for tool in _tools if tool not in (
         draft_interview_invitation, draft_bulk_interview_invitations,
         generate_interview_questions_for_candidate)]
 
-    llm = ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
+    llm = _ReadOnlyModel() if read_only else ChatGoogleGenerativeAI(model=settings.GEMINI_LLM_MODEL, google_api_key=api_key,
                                  callbacks=[UsageCallback(settings.GEMINI_LLM_MODEL)])
     return create_agent(
         model=llm,
         tools=tools,
-        system_prompt=get_prompt_text("cv-rag-agent-system"),
+        system_prompt=None if read_only else get_prompt_text("cv-rag-agent-system"),
         checkpointer=checkpointer,
     )

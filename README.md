@@ -1,5 +1,19 @@
 # CV RAG AI/Data — DB Migration
 
+## HTTP API cho frontend
+
+API auth, hội thoại riêng, text chat, xác nhận JD và feedback:
+
+```bash
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+Mở http://127.0.0.1:8000/docs. Xem [hướng dẫn chạy và test](docs/api/setup.md),
+[hợp đồng JSON](docs/api/contract.md) và [cấu trúc triển khai](docs/api/implementation-plan.md).
+Chạy một tiến trình ghi chat; dừng Streamlit khi thử API trên cùng checkpoint.
+
 ## Setup
 
 ```bash

@@ -2,23 +2,26 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from src.auth.service import AccessDenied, require_user
+from src.auth.service import require_user
 from src.db.models import ChatConversation, ChatFeedback
 from src.db.session import SessionLocal
+from src.auth.errors import ConversationNotFound
+from src.chat.concurrency import conversation_lock
+from src.chat.errors import CleanupPending
 
 logger = logging.getLogger(__name__)
 
 TITLE_MAX_LENGTH = 40
 
 
-def require_conversation(thread_id, session=None):
+def require_conversation(thread_id, session=None, *, include_deleted=False):
     user = require_user()
     if session is None:
         with SessionLocal() as db:
-            return require_conversation(thread_id, db)
+            return require_conversation(thread_id, db, include_deleted=include_deleted)
     conv = session.get(ChatConversation, thread_id)
-    if conv is None or conv.deleted_at is not None or conv.owner_user_id != user.user_id:
-        raise AccessDenied("Không tìm thấy hội thoại hoặc bạn không có quyền truy cập.")
+    if conv is None or (conv.deleted_at is not None and not include_deleted) or conv.owner_user_id != user.user_id:
+        raise ConversationNotFound("Không tìm thấy hội thoại hoặc bạn không có quyền truy cập.")
     return conv
 
 
@@ -43,6 +46,7 @@ def list_conversations(limit: int = 50) -> list[dict]:
             {
                 "thread_id": c.thread_id,
                 "title": c.title,
+                "created_at": c.created_at,
                 "updated_at": c.updated_at
             }
             for c in rows
@@ -60,12 +64,23 @@ def touch_conversation(thread_id: str, first_message: str | None = None) -> None
 
 
 def delete_conversation(thread_id: str) -> None:
-    with SessionLocal() as session:
-        conv = require_conversation(thread_id, session)
-        conv.deleted_at = datetime.now(timezone.utc)
-        session.query(ChatFeedback).filter_by(thread_id=thread_id).delete()
-        session.commit()
+    # Only DELETE may revisit an owned tombstone to retry physical cleanup.
+    require_conversation(thread_id, include_deleted=True)
+    with conversation_lock(thread_id):
+        with SessionLocal() as session:
+            conv = require_conversation(thread_id, session, include_deleted=True)
+            if conv.deleted_at is None:
+                conv.deleted_at = datetime.now(timezone.utc)
+            session.query(ChatFeedback).filter_by(thread_id=thread_id).delete()
+            session.commit()
 
-    from src.chat.checkpoints import delete_checkpoints
+        from src.chat.checkpoints import delete_checkpoints
+        try:
+            delete_checkpoints(thread_id)
+        except Exception as exc:
+            raise CleanupPending("Hội thoại đã ẩn; cần thử xóa lại để dọn checkpoint.") from exc
 
-    delete_checkpoints(thread_id)
+
+def conversation_metadata(thread_id: str) -> dict:
+    conv = require_conversation(thread_id)
+    return {key: getattr(conv, key) for key in ("thread_id", "title", "created_at", "updated_at")}

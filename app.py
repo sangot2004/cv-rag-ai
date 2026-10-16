@@ -175,26 +175,29 @@ def render_app(current_user):
         checkpointer bền (SqliteSaver), không phải bộ nhớ tạm của trình duyệt.
         """
         st.info("🔍 Agent đã trích xuất tiêu chí từ JD — xác nhận trước khi tìm kiếm (tốn nhiều lời gọi AI):")
+        confirmation_id = payload["confirmation_id"]
+        form_key = f"{active_thread_id}_{confirmation_id}"
 
         edited_title = st.text_input("Vị trí", value=payload.get(
-            "position_title", ""), key=f"confirm_title_{active_thread_id}")
+            "position_title", ""), key=f"confirm_title_{form_key}")
         edited_skills_str = st.text_input(
             "Kỹ năng bắt buộc (phân cách bằng dấu phẩy)",
             value=", ".join(payload.get("required_skills", [])),
-            key=f"confirm_skills_{active_thread_id}",
+            key=f"confirm_skills_{form_key}",
         )
         edited_years = st.number_input(
             "Số năm kinh nghiệm tối thiểu",
             value=float(payload.get("min_years_experience") or 0),
-            key=f"confirm_years_{active_thread_id}",
+            min_value=0.0,
+            key=f"confirm_years_{form_key}",
         )
         edited_top_k = st.slider(
-            "Số lượng ứng viên (K)", 1, 10, value=payload.get("top_k", 5), key=f"confirm_topk_{active_thread_id}"
+            "Số lượng ứng viên (K)", 1, 10, value=payload.get("top_k", 5), key=f"confirm_topk_{form_key}"
         )
 
         col_confirm, col_cancel = st.columns(2)
         with col_confirm:
-            if st.button("✅ Đồng ý, tìm kiếm ngay", type="primary", key=f"confirm_btn_{active_thread_id}"):
+            if st.button("✅ Đồng ý, tìm kiếm ngay", type="primary", key=f"confirm_btn_{form_key}"):
                 edited_criteria = {
                     "position_title": edited_title,
                     "required_skills": [s.strip() for s in edited_skills_str.split(",") if s.strip()],
@@ -202,12 +205,19 @@ def render_app(current_user):
                     "top_k": edited_top_k,
                 }
                 with st.spinner("Đang xếp hạng và chấm điểm..."):
-                    resume_confirmation(active_thread_id, confirmed=True, edited_criteria=edited_criteria)
-                st.rerun()
+                    result = resume_confirmation(active_thread_id, confirmed=True, edited_criteria=edited_criteria,
+                                                 confirmation_id=confirmation_id)
+                if result.get("error"):
+                    st.error(result["error"])
+                else:
+                    st.rerun()
         with col_cancel:
-            if st.button("❌ Huỷ", key=f"cancel_btn_{active_thread_id}"):
-                resume_confirmation(active_thread_id, confirmed=False)
-                st.rerun()
+            if st.button("❌ Huỷ", key=f"cancel_btn_{form_key}"):
+                result = resume_confirmation(active_thread_id, confirmed=False, confirmation_id=confirmation_id)
+                if result.get("error"):
+                    st.error(result["error"])
+                else:
+                    st.rerun()
 
     # TAB 1 — Chat hỏi đáp
     with tab_chat:

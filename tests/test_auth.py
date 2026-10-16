@@ -267,8 +267,8 @@ def test_router_uses_authenticated_department(accounts, monkeypatch):
 
     with auth.auth_scope(accounts.tokens["alice"]):
         thread = chats.create_conversation()
-        assert router.ask("hello", thread)["content"] == "answer"
-        assert router.resume(thread, True)["content"] == "answer"
+        assert router._invoke_ask("hello", thread)["messages"][0].content == "answer"
+        assert router._invoke_resume(thread, "confirmation-id", True)["messages"][0].content == "answer"
         with pytest.raises(auth.AccessDenied):
             router.ask("hello", thread, department_id="dept-b")
 

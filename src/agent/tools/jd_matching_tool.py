@@ -2,11 +2,19 @@ import logging
 
 from langchain_core.tools import tool
 from langgraph.types import interrupt
+from langgraph.func import task
 
 from src.ingestion.extraction.llm_extractor import extract_jd_data
 from src.retrieval.candidate_ranking import rank_candidates_for_jd
+from src.schemas.jd_schema import JDSchema
 
 logger = logging.getLogger(__name__)
+
+
+@task
+def prepare_jd_criteria(jd_text: str) -> dict:
+    """Checkpoint the extraction before interrupt; replay reuses this exact result."""
+    return extract_jd_data(jd_text).model_dump(mode="json")
 
 
 @tool
@@ -22,7 +30,8 @@ def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> str:
     xếp hạng tốn kém (K+1 lời gọi Gemini). Không cần tự hỏi lại HR trong
     câu trả lời trước khi gọi tool — cơ chế xác nhận đã nằm SẴN bên trong.
     """
-    jd = extract_jd_data(jd_text)
+    jd = JDSchema.model_validate(prepare_jd_criteria(jd_text).result())
+    top_k = max(1, min(top_k, 10))
 
     confirmation = interrupt(
         {
@@ -44,6 +53,7 @@ def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> str:
         jd.position_title = edited.get("position_title", jd.position_title)
         jd.required_skills = edited.get("required_skills", jd.required_skills)
         jd.min_years_experience = edited.get("min_years_experience", jd.min_years_experience)
+        jd.preferred_education = edited.get("preferred_education", jd.preferred_education)
         top_k = edited.get("top_k", top_k)
 
     results = rank_candidates_for_jd(jd, top_k=top_k)

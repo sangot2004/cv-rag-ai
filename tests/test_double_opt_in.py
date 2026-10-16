@@ -92,6 +92,7 @@ class TestDoubleOptIn:
             )
 
             mock_rank.assert_called_once()
+            mock_extract.assert_called_once()
             assert "__interrupt__" not in result
 
     def test_resume_cancelled_never_runs_ranking(self, graph_with_checkpointer):
@@ -126,3 +127,28 @@ class TestDoubleOptIn:
             assert called_jd_obj.position_title == "Senior Data Engineer"
             assert called_jd_obj.required_skills == ["Python", "Spark"]
             assert called_kwargs.get("top_k") == 8 or mock_rank.call_args.kwargs.get("top_k") == 8
+
+
+def test_extraction_survives_sqlite_close_and_reopen(tmp_path):
+    """Restarting the checkpointer must not reinterpret an already displayed JD."""
+    from langgraph.checkpoint.sqlite import SqliteSaver
+
+    path = str(tmp_path / "restart.db")
+    config = {"configurable": {"thread_id": "durable-confirmation"}}
+    original = JDSchema(position_title="Engineer", required_skills=["Python"],
+                        min_years_experience=1, preferred_education="Bachelor", raw_text="original JD")
+    changed = JDSchema(position_title="Other", required_skills=["Java"], raw_text="changed JD")
+    with patch("src.agent.tools.jd_matching_tool.extract_jd_data", side_effect=[original, changed]) as extract, \
+            patch("src.agent.tools.jd_matching_tool.rank_candidates_for_jd", return_value=[]) as rank:
+        with SqliteSaver.from_conn_string(path) as saver:
+            graph = create_agent(model=FakeModelCallsToolThenAnswers(),
+                                 tools=[find_top_candidates_for_jd], checkpointer=saver)
+            result = graph.invoke({"messages": [{"role": "user", "content": "find"}]}, config)
+            confirmation_id = result["__interrupt__"][0].id
+        with SqliteSaver.from_conn_string(path) as reopened:
+            graph = create_agent(model=FakeModelCallsToolThenAnswers(),
+                                 tools=[find_top_candidates_for_jd], checkpointer=reopened)
+            assert graph.get_state(config).tasks[0].interrupts[0].id == confirmation_id
+            graph.invoke(Command(resume={confirmation_id: {"confirmed": True}}), config)
+        extract.assert_called_once()
+        assert rank.call_args.args[0] == original
