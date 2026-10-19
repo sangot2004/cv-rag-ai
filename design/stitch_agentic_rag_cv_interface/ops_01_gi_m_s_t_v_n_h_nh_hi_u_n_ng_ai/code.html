@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "surface-tint": "#3755c3",
+          "on-secondary-fixed": "#0b1c30",
+          "outline-variant": "#c4c5d5",
+          "primary-container": "#1e40af",
+          "tertiary-container": "#3433c3",
+          "inverse-surface": "#283044",
+          "on-primary-container": "#a8b8ff",
+          "secondary": "#505f76",
+          "secondary-container": "#d0e1fb",
+          "background": "#faf8ff",
+          "on-background": "#131b2e",
+          "on-tertiary-container": "#b3b5ff",
+          "surface-dim": "#d2d9f4",
+          "inverse-primary": "#b8c4ff",
+          "on-secondary": "#ffffff",
+          "on-primary": "#ffffff",
+          "error": "#ba1a1a",
+          "on-error": "#ffffff",
+          "tertiary": "#170cae",
+          "secondary-fixed": "#d3e4fe",
+          "on-tertiary-fixed": "#07006c",
+          "on-tertiary-fixed-variant": "#2f2ebe",
+          "on-surface-variant": "#444653",
+          "primary-fixed-dim": "#b8c4ff",
+          "surface-container-low": "#f2f3ff",
+          "on-secondary-fixed-variant": "#38485d",
+          "surface-bright": "#faf8ff",
+          "tertiary-fixed": "#e1e0ff",
+          "on-secondary-container": "#54647a",
+          "surface-container-high": "#e2e7ff",
+          "on-surface": "#131b2e",
+          "secondary-fixed-dim": "#b7c8e1",
+          "on-primary-fixed": "#001453",
+          "surface": "#faf8ff",
+          "surface-container": "#eaedff",
+          "primary-fixed": "#dde1ff",
+          "error-container": "#ffdad6",
+          "surface-variant": "#dae2fd",
+          "surface-container-lowest": "#ffffff",
+          "on-primary-fixed-variant": "#173bab",
+          "on-error-container": "#93000a",
+          "tertiary-fixed-dim": "#c0c1ff",
+          "surface-container-highest": "#dae2fd",
+          "outline": "#757684",
+          "primary": "#00288e",
+          "on-tertiary": "#ffffff",
+          "inverse-on-surface": "#eef0ff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.25rem",
+          "xl": "0.5rem",
+          "full": "0.75rem"
+        },
+        "spacing": {
+          "space-lg": "1.25rem",
+          "space-md": "0.75rem",
+          "space-xs": "0.25rem",
+          "space-sm": "0.5rem",
+          "gutter-sm": "0.75rem",
+          "space-xl": "1.75rem",
+          "margin": "1.5rem",
+          "gutter-lg": "1.5rem",
+          "margin-mobile": "1rem",
+          "gutter": "1.25rem",
+          "margin-desktop": "2rem"
+        },
+        "fontFamily": {
+          "code-sm": ["JetBrains Mono"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "display-lg": ["Plus Jakarta Sans"],
+          "body-sm": ["Inter"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "label-md": ["Inter"],
+          "code-xs": ["JetBrains Mono"],
+          "body-lg": ["Inter"],
+          "body-md": ["Inter"],
+          "display-lg-mobile": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+          "headline-sm": ["18px", {"lineHeight": "26px", "fontWeight": "600"}],
+          "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+          "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+          "headline-md": ["22px", {"lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+          "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+          "code-xs": ["11px", {"lineHeight": "14px", "fontWeight": "400"}],
+          "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+          "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+          "display-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}]
+        }
+      }
+    }
+  }</script></head><body class="bg-background font-body-md text-on-background antialiased"><aside class="fixed left-0 top-0 h-full w-[260px] bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="h-16 px-space-md flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><img alt="CV RAG AI Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XzC1fdjB_9CxSBN99qR_FPsjgR864M2qGy_cX6N0wTVlx49ArP6HnEs5xzmnfDjWRWVFPIrqoXXHRh6u7HgA47k05odmlZUq-m_qq6AMqYnnyg8fKRhQzFc4q9bPSM88w-1oUvo5k8dk82ijeDQw7jk-kQdCfh392-K_dzNhUun2cyGhSqw5RyzeoG9SX4MrybxucwMyswpyRlm4lq1Jc-vCEl4hxNrXifExijdiDtpQZYwRxPHhP7iCc"/><span class="font-headline-sm text-headline-sm text-primary tracking-tight">CV RAG AI</span></div><span class="px-space-xs py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-code-xs text-code-xs font-medium">Tuyển dụng</span></div><nav class="flex-1 px-space-sm py-space-sm space-y-space-md" data-active-classes="bg-primary-container text-on-primary font-medium"><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">1. Hỏi Đáp AI</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F1</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat" href="#">Cuộc trò chuyện mới</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat-history" href="#">Hội thoại gần đây</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">2. Tuyển Dụng</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F2</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="candidates" href="#">Hồ sơ ứng viên</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="evaluations-new" href="#">Đánh giá theo mô tả công việc</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="matching" href="#">Khớp nối ứng viên</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="interviews" href="#">Bộ câu hỏi phỏng vấn</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">3. Thư Mời</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F3</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="emails-compose" href="#">Soạn thư</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="emails-bulk" href="#">Gửi hàng loạt</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="emails-history" href="#">Lịch sử gửi thư</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">4. Tiếp Nhận CV</span><span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F4</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ingestion-upload" href="#">Tải lên hồ sơ CV</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ingestion-jobs" href="#">Tiến trình phân tích CV</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">5. Vận Hành &amp; Hệ Thống</span><span class="px-1.5 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-code-xs text-code-xs font-semibold">F5</span></div><a aria-current="page" class="block px-space-sm py-2 rounded-lg transition-all bg-primary-container text-on-primary font-medium" data-path="ops" href="#">Giám sát vận hành</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ops-optimization" href="#">Đề xuất tối ưu</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="admin-users" href="#">Quản trị tài khoản</a></div></nav></div><div class="p-space-sm bg-surface-container-low"><div class="p-space-sm rounded-lg bg-surface-container-lowest flex flex-col gap-space-xs shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><img alt="Ảnh đại diện Lê Thu Hương" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVowNiE6aztmPk4UMGnUrtT3Op7gWlbvgYvLWvTln4DDAU0wEQX4GeOCWaVrBayzynP7GW_AMNUw7seAAdbWUTbTO8-inLE0zHS8YQmyuByQVvZGXO4fF5EYseJzjaLdePjcahXu8R3FY-fjkqD47OLImUYSuqdtZbiM4LYHkkdv7amU5kgWRDzX_-3OfxOJnk9ie7RyU396KHFR7B6JM7SvEkAHTHJ32F3wDXtFTpt6ILDR7rCij8g"/><div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface font-semibold">Lê Thu Hương</span><span class="font-code-xs text-code-xs text-secondary">Lead HR Recruiter / Admin</span></div></div><button class="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded transition-colors" title="Đăng xuất an toàn" type="button"><span class="material-symbols-outlined text-lg">logout</span></button></div><div class="pt-1 flex items-center justify-between text-on-surface-variant font-code-xs text-code-xs"><span class="text-outline">Phòng ban:</span><span class="font-body-sm text-on-surface font-medium">Tuyển dụng Nhân sự</span></div></div></div></aside><div class="pl-[260px]"><header class="fixed top-0 left-[260px] right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-outline text-lg">monitoring</span><nav aria-label="Breadcrumb" class="flex items-center gap-1.5 font-label-md text-label-md text-on-surface-variant"><a class="hover:text-primary transition-colors" href="#">Trang chủ</a><span class="text-outline-variant">/</span><a class="hover:text-primary transition-colors" href="#">Vận hành &amp; Hệ thống</a><span class="text-outline-variant">/</span><span class="text-on-surface font-medium">Giám sát vận hành</span></nav></div><div class="relative hidden lg:block w-72"><span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-base">search</span><input class="w-full pl-8 pr-3 py-1.5 text-body-sm font-body-sm rounded-lg bg-surface-container-low placeholder:text-outline text-on-surface focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Tìm kiếm dịch vụ, tài nguyên, chỉ số..." type="text"/></div></div><div class="flex items-center gap-space-md"><div class="hidden sm:flex items-center gap-space-xs px-space-sm py-1 rounded bg-secondary-container text-on-secondary-container font-code-xs text-code-xs"><span class="w-2 h-2 rounded-full bg-surface-tint animate-pulse"></span><span>Hệ thống: Đang hoạt động ổn định</span></div><button class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Trợ giúp &amp; Hướng dẫn nghiệp vụ" type="button"><span class="material-symbols-outlined text-xl">help</span></button><button class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Tùy biến giao diện" type="button"><span class="material-symbols-outlined text-xl">palette</span></button><div class="h-4 w-px bg-outline-variant"></div><div class="flex items-center gap-space-xs"><img alt="Ảnh đại diện Lê Thu Hương" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVowNiE6aztmPk4UMGnUrtT3Op7gWlbvgYvLWvTln4DDAU0wEQX4GeOCWaVrBayzynP7GW_AMNUw7seAAdbWUTbTO8-inLE0zHS8YQmyuByQVvZGXO4fF5EYseJzjaLdePjcahXu8R3FY-fjkqD47OLImUYSuqdtZbiM4LYHkkdv7amU5kgWRDzX_-3OfxOJnk9ie7RyU396KHFR7B6JM7SvEkAHTHJ32F3wDXtFTpt6ILDR7rCij8g"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Lê Thu Hương</span><span class="font-code-xs text-code-xs text-secondary leading-tight">Lead HR Recruiter / Admin</span></div></div></div></header><main class="relative pt-16 w-full min-h-screen bg-background"><div class="flex flex-col w-full">
+<div class="px-margin-desktop py-space-xl max-w-[1600px] mx-auto w-full space-y-space-xl">
+<!-- Top Action & Filter Bar -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="space-y-1">
+<div class="flex items-center gap-space-sm text-outline font-label-md text-label-md">
+<span class="font-code-xs text-code-xs px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-medium">OPS-01</span>
+<span>•</span>
+<span class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-primary">cloud_done</span>
+            Cập nhật trực tiếp (Múi giờ GMT+7)
+          </span>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">
+          Giám sát vận hành &amp; Hiệu năng AI
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+          Theo dõi tổng thể chỉ số gọi mô hình AI, định mức chi phí ước tính, độ trễ phản hồi thời gian thực và phân bổ hạn ngạch cho toàn hệ thống tuyển dụng.
+        </p>
+</div>
+<!-- Control Toolbar -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Time Filter -->
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest font-body-sm text-body-sm text-on-surface pl-3 pr-8 py-2 rounded-lg shadow-sm focus:outline-none cursor-pointer" id="timeRangeFilter">
+<option value="24h">24 giờ qua</option>
+<option value="7d">7 ngày qua</option>
+<option selected="" value="30d">30 ngày gần nhất</option>
+<option value="month">Tháng này (Tháng 5/2025)</option>
+<option value="custom">Tùy chỉnh...</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+</div>
+<!-- Module Filter -->
+<div class="relative hidden sm:block">
+<select class="appearance-none bg-surface-container-lowest font-body-sm text-body-sm text-on-surface pl-3 pr-8 py-2 rounded-lg shadow-sm focus:outline-none cursor-pointer" id="moduleFilter">
+<option value="all">Tất cả mô-đun</option>
+<option value="cv">Trích xuất CV (Ingestion)</option>
+<option value="eval">Đánh giá tiêu chí JD</option>
+<option value="interview">Sinh câu hỏi phỏng vấn</option>
+<option value="email">Soạn thảo thư mời</option>
+<option value="chat">Hỏi đáp tư vấn RAG</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+</div>
+<!-- Model Filter -->
+<div class="relative hidden md:block">
+<select class="appearance-none bg-surface-container-lowest font-body-sm text-body-sm text-on-surface pl-3 pr-8 py-2 rounded-lg shadow-sm focus:outline-none cursor-pointer" id="modelFilter">
+<option value="all">Tất cả mô hình AI</option>
+<option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+<option value="embedding-004">Text-Embedding-004</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+</div>
+<!-- Actions -->
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-sm text-body-sm shadow-sm transition-all" id="refreshBtn" type="button">
+<span class="material-symbols-outlined text-base text-primary">sync</span>
+<span class="hidden xl:inline">Làm mới</span>
+<span class="font-code-xs text-code-xs text-outline px-1 rounded bg-surface-container-high">60s</span>
+</button>
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-body-sm text-body-sm shadow-sm transition-all" id="exportReportBtn" type="button">
+<span class="material-symbols-outlined text-base">download</span>
+<span>Xuất báo cáo</span>
+</button>
+</div>
+</div>
+<!-- Live Status Banner & System Health Toast -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm px-space-lg py-space-sm rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex items-center gap-space-sm">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-surface-tint opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-surface-tint"></span>
+</span>
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Hạ tầng AI Cloud Gateway: Hoạt động bình thường</span>
+<span class="hidden sm:inline text-outline">•</span>
+<span class="font-code-xs text-code-xs text-on-surface-variant">Cluster: ap-southeast-1 (Singapore)</span>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant font-code-xs text-code-xs">
+<span>Độ sẵn sàng API: <strong class="text-on-surface font-semibold font-code-sm">99.98%</strong></span>
+<span>Bộ nhớ đệm trích xuất: <strong class="text-on-surface font-semibold font-code-sm">Hit 68.5%</strong></span>
+<span class="hidden lg:inline">Chuyển tiếp tự động (Failover): <strong class="text-on-surface font-semibold font-code-sm">Sẵn sàng</strong></span>
+</div>
+</div>
+<!-- 4 Key Primary Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Metric 1: Total AI Calls -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between space-y-space-md transition-all hover:shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Lượt gọi AI</span>
+<div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">28,450</span>
+<span class="font-code-xs text-code-xs px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-xs">arrow_upward</span> +14.2%
+            </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Tổng số yêu cầu sinh văn bản &amp; trích xuất
+          </p>
+</div>
+<div class="pt-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg px-space-lg py-2.5 rounded-b-xl flex items-center justify-between font-code-xs text-code-xs">
+<span class="text-on-surface">Thành công: <strong>99.42%</strong> (28,285)</span>
+<span class="text-secondary">Thử lại: 165 lượt</span>
+</div>
+</div>
+<!-- Metric 2: Token Consumption -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between space-y-space-md transition-all hover:shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Token tiêu thụ</span>
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-lg">memory</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">42.8M</span>
+<span class="font-code-xs text-code-xs text-on-surface-variant">Tokens</span>
+</div>
+<div class="flex items-center gap-2 mt-1 font-code-xs text-code-xs text-on-surface-variant">
+<span>In: <strong>34.2M</strong></span>
+<span>•</span>
+<span>Out: <strong>8.6M</strong></span>
+</div>
+</div>
+<div class="pt-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg px-space-lg py-2.5 rounded-b-xl flex items-center justify-between font-code-xs text-code-xs">
+<span class="text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-surface-tint">offline_bolt</span>
+            Prompt Cache: 68.5%
+          </span>
+<span class="text-primary font-medium">Tiết kiệm 41%</span>
+</div>
+</div>
+<!-- Metric 3: Estimated AI Cost -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between space-y-space-md transition-all hover:shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Chi phí ước tính</span>
+<div class="w-8 h-8 rounded-lg bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-lg">payments</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">$24.85</span>
+<span class="font-code-xs text-code-xs px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-medium">Bản định giá v1.4</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Ước tính theo giá niêm yết nhà cung cấp
+          </p>
+</div>
+<div class="pt-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg px-space-lg py-2.5 rounded-b-xl flex items-center justify-between font-code-xs text-code-xs">
+<span class="truncate text-on-surface-variant">3.2k dev calls (0 USD)</span>
+<span class="font-medium text-on-surface">25.2k có phí</span>
+</div>
+</div>
+<!-- Metric 4: Latency & Reliability -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between space-y-space-md transition-all hover:shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Độ trễ &amp; Độ ổn định</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg">speed</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-space-sm">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">1.42s</span>
+<span class="font-code-xs text-code-xs text-on-surface-variant font-medium">(Trung vị Median)</span>
+</div>
+<div class="flex items-center gap-space-sm mt-1 font-code-xs text-code-xs text-on-surface-variant">
+<span>P95: <strong>3.85s</strong></span>
+<span>•</span>
+<span class="text-on-surface">Lỗi: <strong>0.18%</strong> (52/28k)</span>
+</div>
+</div>
+<div class="pt-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg px-space-lg py-2.5 rounded-b-xl flex items-center justify-between font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-error font-medium">
+<span class="material-symbols-outlined text-xs">pending_actions</span>
+<span>DLQ: 2 tác vụ chờ</span>
+</div>
+<button class="text-primary hover:underline font-semibold cursor-pointer" id="viewDlqQuickBtn">Chi tiết</button>
+</div>
+</div>
+</div>
+<!-- Two-Column Analytical Charts & Capacity Health -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Left Column: Trend Visualizations & Model Breakdown (7 cols on 12) -->
+<div class="lg:col-span-7 flex flex-col gap-space-lg">
+<!-- Timeline Graph Card -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col space-y-space-md">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Xu hướng xử lý theo thời gian</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Phân bố lưu lượng 14 ngày gần nhất qua các mô-đun nghiệp vụ</p>
+</div>
+<!-- Metric Toggle Buttons -->
+<div class="flex items-center p-1 rounded-lg bg-surface-container-low self-start sm:self-auto">
+<button class="px-space-sm py-1 rounded font-label-md text-label-md bg-surface-container-lowest text-primary font-semibold shadow-xs transition-all" id="toggleCalls">Lượt gọi</button>
+<button class="px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" id="toggleCost">Chi phí ($)</button>
+<button class="px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" id="toggleLatency">Độ trễ (s)</button>
+</div>
+</div>
+<!-- Stacked Bar Chart Visualization (Inline SVG) -->
+<div class="w-full pt-space-sm">
+<div class="flex items-center justify-end gap-space-md text-on-surface-variant font-code-xs text-code-xs mb-3">
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-primary"></span><span>Chat &amp; RAG (42%)</span></div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-surface-tint"></span><span>Đánh giá JD (31%)</span></div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-tertiary"></span><span>Ingestion CV (19%)</span></div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-secondary"></span><span>Thư mời (8%)</span></div>
+</div>
+<!-- Responsive SVG Stacked Column Chart -->
+<div class="relative w-full h-56">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 680 180">
+<!-- Grid Horizontal Lines -->
+<line stroke="#eaedff" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="680" y1="10" y2="10"></line>
+<line stroke="#eaedff" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="680" y1="50" y2="50"></line>
+<line stroke="#eaedff" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="680" y1="90" y2="90"></line>
+<line stroke="#eaedff" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="680" y1="130" y2="130"></line>
+<line stroke="#c4c5d5" stroke-width="1" x1="0" x2="680" y1="170" y2="170"></line>
+<!-- 14 Days of Mock Stacked Columns -->
+<!-- Day 1 -->
+<rect fill="#00288e" height="65" rx="1" width="22" x="18" y="105"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="18" y="65"></rect>
+<rect fill="#170cae" height="30" rx="1" width="22" x="18" y="35"></rect>
+<rect fill="#505f76" height="10" rx="1" width="22" x="18" y="25"></rect>
+<!-- Day 2 -->
+<rect fill="#00288e" height="75" rx="1" width="22" x="66" y="95"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="66" y="55"></rect>
+<rect fill="#170cae" height="25" rx="1" width="22" x="66" y="30"></rect>
+<rect fill="#505f76" height="10" rx="1" width="22" x="66" y="20"></rect>
+<!-- Day 3 -->
+<rect fill="#00288e" height="55" rx="1" width="22" x="114" y="115"></rect>
+<rect fill="#3755c3" height="35" rx="1" width="22" x="114" y="80"></rect>
+<rect fill="#170cae" height="20" rx="1" width="22" x="114" y="60"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="114" y="52"></rect>
+<!-- Day 4 -->
+<rect fill="#00288e" height="85" rx="1" width="22" x="162" y="85"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="162" y="45"></rect>
+<rect fill="#170cae" height="23" rx="1" width="22" x="162" y="22"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="162" y="14"></rect>
+<!-- Day 5 -->
+<rect fill="#00288e" height="90" rx="1" width="22" x="210" y="80"></rect>
+<rect fill="#3755c3" height="42" rx="1" width="22" x="210" y="38"></rect>
+<rect fill="#170cae" height="20" rx="1" width="22" x="210" y="18"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="210" y="10"></rect>
+<!-- Day 6 (Weekend lower) -->
+<rect fill="#00288e" height="40" rx="1" width="22" x="258" y="130"></rect>
+<rect fill="#3755c3" height="20" rx="1" width="22" x="258" y="110"></rect>
+<rect fill="#170cae" height="12" rx="1" width="22" x="258" y="98"></rect>
+<rect fill="#505f76" height="4" rx="1" width="22" x="258" y="94"></rect>
+<!-- Day 7 (Weekend) -->
+<rect fill="#00288e" height="35" rx="1" width="22" x="306" y="135"></rect>
+<rect fill="#3755c3" height="17" rx="1" width="22" x="306" y="118"></rect>
+<rect fill="#170cae" height="10" rx="1" width="22" x="306" y="108"></rect>
+<rect fill="#505f76" height="4" rx="1" width="22" x="306" y="104"></rect>
+<!-- Day 8 -->
+<rect fill="#00288e" height="80" rx="1" width="22" x="354" y="90"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="354" y="50"></rect>
+<rect fill="#170cae" height="22" rx="1" width="22" x="354" y="28"></rect>
+<rect fill="#505f76" height="10" rx="1" width="22" x="354" y="18"></rect>
+<!-- Day 9 -->
+<rect fill="#00288e" height="92" rx="1" width="22" x="402" y="78"></rect>
+<rect fill="#3755c3" height="42" rx="1" width="22" x="402" y="36"></rect>
+<rect fill="#170cae" height="20" rx="1" width="22" x="402" y="16"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="402" y="8"></rect>
+<!-- Day 10 -->
+<rect fill="#00288e" height="88" rx="1" width="22" x="450" y="82"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="450" y="42"></rect>
+<rect fill="#170cae" height="22" rx="1" width="22" x="450" y="20"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="450" y="12"></rect>
+<!-- Day 11 -->
+<rect fill="#00288e" height="100" rx="1" width="22" x="498" y="70"></rect>
+<rect fill="#3755c3" height="38" rx="1" width="22" x="498" y="32"></rect>
+<rect fill="#170cae" height="18" rx="1" width="22" x="498" y="14"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="498" y="6"></rect>
+<!-- Day 12 -->
+<rect fill="#00288e" height="95" rx="1" width="22" x="546" y="75"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="546" y="35"></rect>
+<rect fill="#170cae" height="20" rx="1" width="22" x="546" y="15"></rect>
+<rect fill="#505f76" height="6" rx="1" width="22" x="546" y="9"></rect>
+<!-- Day 13 -->
+<rect fill="#00288e" height="105" rx="1" width="22" x="594" y="65"></rect>
+<rect fill="#3755c3" height="37" rx="1" width="22" x="594" y="28"></rect>
+<rect fill="#170cae" height="16" rx="1" width="22" x="594" y="12"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="594" y="4"></rect>
+<!-- Day 14 (Today) -->
+<rect fill="#00288e" height="90" rx="1" width="22" x="642" y="80"></rect>
+<rect fill="#3755c3" height="40" rx="1" width="22" x="642" y="40"></rect>
+<rect fill="#170cae" height="20" rx="1" width="22" x="642" y="20"></rect>
+<rect fill="#505f76" height="8" rx="1" width="22" x="642" y="12"></rect>
+</svg>
+</div>
+<!-- Dates Horizontal Ticks -->
+<div class="flex items-center justify-between font-code-xs text-code-xs text-outline pt-2 px-1">
+<span>08/05</span>
+<span>10/05</span>
+<span>12/05</span>
+<span>14/05</span>
+<span>16/05</span>
+<span>18/05</span>
+<span class="text-primary font-medium">Hôm nay</span>
+</div>
+</div>
+</div>
+<!-- Model Breakdown Table Card -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col space-y-space-md">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Hiệu năng theo mô hình AI</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chi tiết phân bổ tải và chi phí theo các engine cốt lõi</p>
+</div>
+<span class="font-code-xs text-code-xs px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-medium">
+              3 mô hình hoạt động
+            </span>
+</div>
+<!-- Responsive Table -->
+<div class="overflow-x-auto -mx-space-lg">
+<table class="w-full text-left font-body-sm text-body-sm min-w-[560px]">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<tr>
+<th class="py-2.5 px-space-lg font-semibold">Tên mô hình</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Lượt gọi</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Tokens (In / Out)</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Độ trễ TB</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Chi phí ước tính</th>
+<th class="py-2.5 px-space-lg font-semibold text-center">Trạng thái</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1: Gemini 1.5 Pro -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div>
+<div class="font-medium text-on-surface">Gemini 1.5 Pro</div>
+<div class="font-code-xs text-code-xs text-outline">Đánh giá JD phức tạp &amp; Suy luận sâu</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface font-medium">7,420</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface-variant">18.4M / 4.1M</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">2.45s</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-primary font-bold">$16.80</td>
+<td class="py-3 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Ổn định
+                    </span>
+</td>
+</tr>
+<!-- Row 2: Gemini 1.5 Flash -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-2 h-2 rounded-full bg-surface-tint"></div>
+<div>
+<div class="font-medium text-on-surface">Gemini 1.5 Flash</div>
+<div class="font-code-xs text-code-xs text-outline">Trích xuất CV nhanh &amp; Chat tư vấn RAG</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface font-medium">16,840</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface-variant">14.6M / 4.5M</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">0.86s</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-primary font-bold">$6.92</td>
+<td class="py-3 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Ổn định
+                    </span>
+</td>
+</tr>
+<!-- Row 3: Embedding-004 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<div>
+<div class="font-medium text-on-surface">Text-Embedding-004</div>
+<div class="font-code-xs text-code-xs text-outline">Vector Search hồ sơ &amp; Chunk Matching</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface font-medium">4,190</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface-variant">1.2M / 0</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">0.14s</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-primary font-bold">$1.13</td>
+<td class="py-3 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Ổn định
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Column: Quota, Health & Dead Letter Queue (5 cols on 12) -->
+<div class="lg:col-span-5 flex flex-col gap-space-lg">
+<!-- Quota & Capacity Health Card -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col space-y-space-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Hạn ngạch &amp; Tải API</h2>
+<span class="material-symbols-outlined text-outline text-lg" title="Thông số giới hạn tốc độ cung cấp bởi Google AI Platform">info</span>
+</div>
+<!-- Capacity Bars -->
+<div class="space-y-space-md">
+<!-- Rate Limit (RPM) -->
+<div class="space-y-1">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="text-on-surface font-medium">Yêu cầu mỗi phút (RPM Limit)</span>
+<span class="font-code-xs text-code-xs text-on-surface font-semibold">45 / 360 RPM (12.5%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 12.5%"></div>
+</div>
+<p class="font-code-xs text-code-xs text-outline">Mức an toàn cao, không gặp tình trạng nghẽn hàng đợi (429 Too Many Requests).</p>
+</div>
+<!-- Token Per Minute (TPM) -->
+<div class="space-y-1">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="text-on-surface font-medium">Hạn ngạch Token/phút (TPM Limit)</span>
+<span class="font-code-xs text-code-xs text-on-surface font-semibold">180k / 2.0M TPM (9.0%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+<div class="h-full bg-surface-tint rounded-full" style="width: 9%"></div>
+</div>
+<p class="font-code-xs text-code-xs text-outline">Đảm bảo xử lý trơn tru khi chạy chấm điểm JD hàng loạt lên đến 50 CV cùng lúc.</p>
+</div>
+<!-- Vector DB Retrieval Cache -->
+<div class="space-y-1">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="text-on-surface font-medium">Bộ nhớ đệm Vector DB &amp; Trích dẫn</span>
+<span class="font-code-xs text-code-xs text-on-surface font-semibold">99.8% Cache Hits</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 99.8%"></div>
+</div>
+<p class="font-code-xs text-code-xs text-outline">Bộ nhớ đệm trích xuất kỹ năng chuẩn hóa giúp giảm 4.8 lần thời gian phản hồi.</p>
+</div>
+</div>
+<!-- Architecture Connectivity Status Blocks -->
+<div class="pt-space-sm grid grid-cols-2 gap-space-sm font-code-xs text-code-xs">
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-1">
+<span class="text-outline">Cơ chế định tuyến:</span>
+<span class="font-medium text-on-surface flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Round-Robin v2
+              </span>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-1">
+<span class="text-outline">Tự động Thử lại:</span>
+<span class="font-medium text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-surface-tint">check_circle</span> Max 3 lần (Jitter)
+              </span>
+</div>
+</div>
+</div>
+<!-- Dead Letter Queue (DLQ) & Active Alerts Card -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col space-y-space-md border-l-4 border-l-error">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-error text-xl">warning</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Cảnh báo &amp; Hàng đợi DLQ</h2>
+</div>
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-code-xs text-code-xs font-semibold">
+              2 tác vụ cần xử lý
+            </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Tất cả lỗi nghiệp vụ đều được cô lập an toàn, không làm gián đoạn các phiên làm việc của chuyên viên tuyển dụng.
+          </p>
+<!-- DLQ Item List -->
+<div class="space-y-space-sm">
+<!-- DLQ Item 1 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-2">
+<div class="flex items-start justify-between gap-space-sm">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-code-sm text-code-sm font-semibold text-on-surface">#JOB-9021</span>
+<span class="font-code-xs text-code-xs px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant">Ingestion CV</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                    File PDF định dạng scan mờ (quá ngưỡng OCR), đã tự động thử lại 3 lần không thành công.
+                  </p>
+</div>
+<button class="retry-action-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container-high text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all whitespace-nowrap cursor-pointer" type="button">
+                  Thử lại
+                </button>
+</div>
+<div class="flex items-center justify-between text-outline font-code-xs text-code-xs">
+<span>Ứng viên: Nguyễn Trọng Đ.</span>
+<span>Lúc: 14:15 hôm nay</span>
+</div>
+</div>
+<!-- DLQ Item 2 -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col gap-2">
+<div class="flex items-start justify-between gap-space-sm">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-code-sm text-code-sm font-semibold text-on-surface">#MAIL-FAIL-04</span>
+<span class="font-code-xs text-code-xs px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant">Thư mời</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                    Hộp thư người nhận từ chối kết nối (SMTP 550 Mailbox unavailable).
+                  </p>
+</div>
+<button class="retry-action-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container-high text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all whitespace-nowrap cursor-pointer" type="button">
+                  Kiểm tra email
+                </button>
+</div>
+<div class="flex items-center justify-between text-outline font-code-xs text-code-xs">
+<span>Vị trí: Senior Frontend Dev</span>
+<span>Lúc: 11:20 hôm nay</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1 font-label-md text-label-md">
+<span class="text-on-surface-variant">Chính sách lưu vết: 30 ngày</span>
+<a class="text-primary hover:underline font-semibold flex items-center gap-1" href="#">
+              Xem toàn bộ nhật ký lỗi
+              <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Recent AI Operations & Audit Logs (Section 5.10) -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col space-y-space-md">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Nhật ký tác vụ AI gần nhất</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Ghi nhận minh bạch 5 tác vụ AI vừa được xử lý gần nhất trên hệ thống</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-code-xs text-code-xs text-on-surface-variant hidden md:inline">Ghi vết RAG &amp; Tokens tự động</span>
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer" id="refreshLogsBtn" title="Cập nhật bản ghi mới" type="button">
+<span class="material-symbols-outlined text-lg">refresh</span>
+</button>
+</div>
+</div>
+<!-- Audit Logs Table -->
+<div class="overflow-x-auto -mx-space-lg">
+<table class="w-full text-left font-body-sm text-body-sm min-w-[900px]">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<tr>
+<th class="py-2.5 px-space-lg font-semibold">Thời gian (GMT+7)</th>
+<th class="py-2.5 px-space-md font-semibold">Mô-đun nghiệp vụ</th>
+<th class="py-2.5 px-space-md font-semibold">Mã tác vụ</th>
+<th class="py-2.5 px-space-md font-semibold">Mô hình</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Tokens (In / Out)</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Độ trễ</th>
+<th class="py-2.5 px-space-md font-semibold text-center">Trạng thái</th>
+<th class="py-2.5 px-space-lg font-semibold text-right">Hành động</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Record 1 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg font-code-xs text-code-xs text-on-surface">15:42:18 • 18/05/2025</td>
+<td class="py-3 px-space-md">
+<span class="font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-primary">fact_check</span>
+                  Đánh giá ứng viên theo JD
+                </span>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-on-surface">
+<span class="font-semibold">#EVAL-8841</span>
+<button class="copy-btn text-outline hover:text-primary transition-colors cursor-pointer" data-id="EVAL-8841" title="Sao chép ID tác vụ">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs text-on-surface-variant">Gemini 1.5 Pro</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface">2,450 / 840</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">1.82s</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Thành công 200
+                </span>
+</td>
+<td class="py-3 px-space-lg text-right">
+<button class="view-detail-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all cursor-pointer">
+                  Xem chi tiết
+                </button>
+</td>
+</tr>
+<!-- Record 2 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg font-code-xs text-code-xs text-on-surface">15:41:02 • 18/05/2025</td>
+<td class="py-3 px-space-md">
+<span class="font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-surface-tint">document_scanner</span>
+                  Trích xuất kỹ năng CV
+                </span>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-on-surface">
+<span class="font-semibold">#INGEST-3419</span>
+<button class="copy-btn text-outline hover:text-primary transition-colors cursor-pointer" data-id="INGEST-3419" title="Sao chép ID tác vụ">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs text-on-surface-variant">Gemini 1.5 Flash</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface">1,120 / 310</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">0.64s</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Thành công 200
+                </span>
+</td>
+<td class="py-3 px-space-lg text-right">
+<button class="view-detail-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all cursor-pointer">
+                  Xem chi tiết
+                </button>
+</td>
+</tr>
+<!-- Record 3 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg font-code-xs text-code-xs text-on-surface">15:39:55 • 18/05/2025</td>
+<td class="py-3 px-space-md">
+<span class="font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-tertiary">chat</span>
+                  Chat hỏi đáp RAG
+                </span>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-on-surface">
+<span class="font-semibold">#CHAT-1102</span>
+<button class="copy-btn text-outline hover:text-primary transition-colors cursor-pointer" data-id="CHAT-1102" title="Sao chép ID tác vụ">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs text-on-surface-variant">Gemini 1.5 Flash</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface">890 / 245</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">0.72s</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Thành công 200
+                </span>
+</td>
+<td class="py-3 px-space-lg text-right">
+<button class="view-detail-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all cursor-pointer">
+                  Xem chi tiết
+                </button>
+</td>
+</tr>
+<!-- Record 4 (Failover auto recovery) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg font-code-xs text-code-xs text-on-surface">15:35:10 • 18/05/2025</td>
+<td class="py-3 px-space-md">
+<span class="font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-primary">quiz</span>
+                  Sinh bộ câu hỏi phỏng vấn
+                </span>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-on-surface">
+<span class="font-semibold">#GEN-QUEST-77</span>
+<button class="copy-btn text-outline hover:text-primary transition-colors cursor-pointer" data-id="GEN-QUEST-77" title="Sao chép ID tác vụ">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs text-on-surface-variant">Gemini 1.5 Pro</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface">3,100 / 1,420</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">3.95s</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-medium">
+<span class="material-symbols-outlined text-xs text-surface-tint">replay</span> Đã tự phục hồi
+                </span>
+</td>
+<td class="py-3 px-space-lg text-right">
+<button class="view-detail-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all cursor-pointer">
+                  Xem chi tiết
+                </button>
+</td>
+</tr>
+<!-- Record 5 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3 px-space-lg font-code-xs text-code-xs text-on-surface">15:31:40 • 18/05/2025</td>
+<td class="py-3 px-space-md">
+<span class="font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-secondary">mail</span>
+                  Soạn thảo thư mời phỏng vấn
+                </span>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs">
+<div class="flex items-center gap-1 text-on-surface">
+<span class="font-semibold">#MAIL-COMPOSE-12</span>
+<button class="copy-btn text-outline hover:text-primary transition-colors cursor-pointer" data-id="MAIL-COMPOSE-12" title="Sao chép ID tác vụ">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+</td>
+<td class="py-3 px-space-md font-code-xs text-code-xs text-on-surface-variant">Gemini 1.5 Flash</td>
+<td class="py-3 px-space-md text-right font-code-xs text-code-xs text-on-surface">640 / 380</td>
+<td class="py-3 px-space-md text-right font-code-sm text-code-sm text-on-surface">0.55s</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center gap-1 font-code-xs text-code-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Thành công 200
+                </span>
+</td>
+<td class="py-3 px-space-lg text-right">
+<button class="view-detail-btn px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary font-body-sm text-body-sm font-medium shadow-xs transition-all cursor-pointer">
+                  Xem chi tiết
+                </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+<span>Hiển thị 5 trên tổng số 28,450 bản ghi gọi mô hình</span>
+<div class="flex items-center gap-space-sm">
+<button class="px-3 py-1 rounded bg-surface-container-low text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-50" disabled="">Trang trước</button>
+<span class="font-code-xs text-code-xs text-on-surface font-medium">Trang 1 / 5,690</span>
+<button class="px-3 py-1 rounded bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors">Trang tiếp</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Operational Log Detail Drawer / Modal Mockup (Toggled via JS) -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-inverse-surface/40 backdrop-blur-xs p-4" id="logDetailModal">
+<div class="bg-surface-container-lowest rounded-xl max-w-xl w-full shadow-xl flex flex-col overflow-hidden max-h-[921px]">
+<div class="p-space-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-xl">terminal</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Thông tin tác vụ AI</h3>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer" id="closeModalBtn" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-space-lg space-y-space-md overflow-y-auto">
+<div class="grid grid-cols-2 gap-space-sm font-body-sm text-body-sm">
+<div class="space-y-0.5">
+<span class="text-outline font-label-md text-label-md">Mã tham chiếu:</span>
+<div class="font-code-sm text-code-sm font-semibold text-primary" id="modalTaskCode">#EVAL-8841</div>
+</div>
+<div class="space-y-0.5">
+<span class="text-outline font-label-md text-label-md">Trạng thái:</span>
+<div class="font-code-sm text-code-sm text-on-surface font-medium">HTTP 200 OK (Thành công)</div>
+</div>
+<div class="space-y-0.5">
+<span class="text-outline font-label-md text-label-md">Mô hình AI:</span>
+<div class="font-body-sm text-body-sm text-on-surface font-medium">Gemini 1.5 Pro (Temperature: 0.2)</div>
+</div>
+<div class="space-y-0.5">
+<span class="text-outline font-label-md text-label-md">Thời gian hoàn thành:</span>
+<div class="font-code-sm text-code-sm text-on-surface">1.82s (TTFT: 0.42s)</div>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-semibold">Phân bổ Token &amp; Định mức tài nguyên:</label>
+<div class="p-space-sm rounded-lg bg-surface-container-low font-code-xs text-code-xs space-y-1">
+<div class="flex justify-between"><span>Input Tokens (Prompt + RAG Context):</span> <strong class="text-on-surface">2,450 tokens</strong></div>
+<div class="flex justify-between"><span>Output Tokens (JSON Structured Schema):</span> <strong class="text-on-surface">840 tokens</strong></div>
+<div class="flex justify-between"><span>Prompt Cache Hit:</span> <span class="text-surface-tint font-semibold">Có (1,800 tokens tái sử dụng)</span></div>
+<div class="flex justify-between pt-1 border-t border-surface-container"><span>Chi phí phiên ước tính:</span> <strong class="text-primary font-semibold">$0.0031 USD</strong></div>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-semibold">Metadata trích dẫn (RAG Grounding Chunks):</label>
+<div class="p-space-sm rounded-lg bg-surface-container-low font-code-xs text-code-xs text-on-surface-variant max-h-36 overflow-y-auto space-y-1">
+<p><strong>[Chunk-1]</strong> "Ứng viên có 4 năm kinh nghiệm phát triển với TypeScript, React và Tailwind CSS trong môi trường Micro-frontend."</p>
+<p><strong>[Chunk-2]</strong> "Đã chủ trì tối ưu hiệu năng Lighthouse từ 65 lên 94 điểm trên hệ thống SaaS Enterprise."</p>
+</div>
+</div>
+</div>
+<div class="p-space-md bg-surface-container-low flex items-center justify-end gap-space-sm">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-body-sm text-body-sm transition-all cursor-pointer" id="closeModalBottomBtn" type="button">
+          Đóng
+        </button>
+</div>
+</div>
+</div>
+<!-- Inline Script for Micro-interactions -->
+<script>
+    (function initOpsDashboard() {
+      // Metric Toggle View in Chart Card
+      const toggleCalls = document.getElementById('toggleCalls');
+      const toggleCost = document.getElementById('toggleCost');
+      const toggleLatency = document.getElementById('toggleLatency');
+      const toggleButtons = [toggleCalls, toggleCost, toggleLatency];
+
+      toggleButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          toggleButtons.forEach(b => {
+            b.className = 'px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all';
+          });
+          btn.className = 'px-space-sm py-1 rounded font-label-md text-label-md bg-surface-container-lowest text-primary font-semibold shadow-xs transition-all';
+        });
+      });
+
+      // Quick Copy Task ID
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          if (navigator.clipboard && id) {
+            navigator.clipboard.writeText(id);
+            const icon = btn.querySelector('.material-symbols-outlined');
+            if (icon) {
+              icon.textContent = 'check';
+              icon.classList.add('text-surface-tint');
+              setTimeout(() => {
+                icon.textContent = 'content_copy';
+                icon.classList.remove('text-surface-tint');
+              }, 1800);
+            }
+          }
+        });
+      });
+
+      // Modal Log Details
+      const modal = document.getElementById('logDetailModal');
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      const closeModalBottomBtn = document.getElementById('closeModalBottomBtn');
+      const viewDetailBtns = document.querySelectorAll('.view-detail-btn');
+      const modalTaskCode = document.getElementById('modalTaskCode');
+
+      function openModal(code) {
+        if (modalTaskCode && code) modalTaskCode.textContent = '#' + code;
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+      }
+
+      function closeModal() {
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+
+      viewDetailBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          const idElem = row ? row.querySelector('.copy-btn') : null;
+          const code = idElem ? idElem.getAttribute('data-id') : 'EVAL-8841';
+          openModal(code);
+        });
+      });
+
+      if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+      if (closeModalBottomBtn) closeModalBottomBtn.addEventListener('click', closeModal);
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) closeModal();
+        });
+      }
+
+      // Quick DLQ button opens modal with DLQ code
+      const viewDlqQuickBtn = document.getElementById('viewDlqQuickBtn');
+      if (viewDlqQuickBtn) {
+        viewDlqQuickBtn.addEventListener('click', () => {
+          openModal('JOB-9021');
+        });
+      }
+
+      // Retry micro-interaction
+      document.querySelectorAll('.retry-action-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const originalText = btn.textContent;
+          btn.textContent = 'Đang xếp hàng...';
+          btn.disabled = true;
+          setTimeout(() => {
+            btn.textContent = 'Đã đẩy vào hàng';
+            btn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+          }, 1000);
+        });
+      });
+
+      // Manual Refresh button trigger
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          const icon = refreshBtn.querySelector('.material-symbols-outlined');
+          if (icon) {
+            icon.classList.add('animate-spin');
+            setTimeout(() => {
+              icon.classList.remove('animate-spin');
+            }, 800);
+          }
+        });
+      }
+    })();
+  </script>
+</div></main></div>
+</body></html>

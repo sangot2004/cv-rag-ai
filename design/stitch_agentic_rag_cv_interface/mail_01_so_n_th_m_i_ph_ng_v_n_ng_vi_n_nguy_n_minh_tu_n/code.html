@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "surface-tint": "#3755c3",
+          "on-secondary-fixed": "#0b1c30",
+          "outline-variant": "#c4c5d5",
+          "primary-container": "#1e40af",
+          "tertiary-container": "#3433c3",
+          "inverse-surface": "#283044",
+          "on-primary-container": "#a8b8ff",
+          "secondary": "#505f76",
+          "secondary-container": "#d0e1fb",
+          "background": "#faf8ff",
+          "on-background": "#131b2e",
+          "on-tertiary-container": "#b3b5ff",
+          "surface-dim": "#d2d9f4",
+          "inverse-primary": "#b8c4ff",
+          "on-secondary": "#ffffff",
+          "on-primary": "#ffffff",
+          "error": "#ba1a1a",
+          "on-error": "#ffffff",
+          "tertiary": "#170cae",
+          "secondary-fixed": "#d3e4fe",
+          "on-tertiary-fixed": "#07006c",
+          "on-tertiary-fixed-variant": "#2f2ebe",
+          "on-surface-variant": "#444653",
+          "primary-fixed-dim": "#b8c4ff",
+          "surface-container-low": "#f2f3ff",
+          "on-secondary-fixed-variant": "#38485d",
+          "surface-bright": "#faf8ff",
+          "tertiary-fixed": "#e1e0ff",
+          "on-secondary-container": "#54647a",
+          "surface-container-high": "#e2e7ff",
+          "on-surface": "#131b2e",
+          "secondary-fixed-dim": "#b7c8e1",
+          "on-primary-fixed": "#001453",
+          "surface": "#faf8ff",
+          "surface-container": "#eaedff",
+          "primary-fixed": "#dde1ff",
+          "error-container": "#ffdad6",
+          "surface-variant": "#dae2fd",
+          "surface-container-lowest": "#ffffff",
+          "on-primary-fixed-variant": "#173bab",
+          "on-error-container": "#93000a",
+          "tertiary-fixed-dim": "#c0c1ff",
+          "surface-container-highest": "#dae2fd",
+          "outline": "#757684",
+          "primary": "#00288e",
+          "on-tertiary": "#ffffff",
+          "inverse-on-surface": "#eef0ff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.25rem",
+          "xl": "0.5rem",
+          "full": "0.75rem"
+        },
+        "spacing": {
+          "space-lg": "1.25rem",
+          "space-md": "0.75rem",
+          "space-xs": "0.25rem",
+          "space-sm": "0.5rem",
+          "gutter-sm": "0.75rem",
+          "space-xl": "1.75rem",
+          "margin": "1.5rem",
+          "gutter-lg": "1.5rem",
+          "margin-mobile": "1rem",
+          "gutter": "1.25rem",
+          "margin-desktop": "2rem"
+        },
+        "fontFamily": {
+          "code-sm": ["JetBrains Mono"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "display-lg": ["Plus Jakarta Sans"],
+          "body-sm": ["Inter"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "label-md": ["Inter"],
+          "code-xs": ["JetBrains Mono"],
+          "body-lg": ["Inter"],
+          "body-md": ["Inter"],
+          "display-lg-mobile": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+          "headline-sm": ["18px", {"lineHeight": "26px", "fontWeight": "600"}],
+          "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+          "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+          "headline-md": ["22px", {"lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+          "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+          "code-xs": ["11px", {"lineHeight": "14px", "fontWeight": "400"}],
+          "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+          "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+          "display-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}]
+        }
+      }
+    }
+  }</script></head><body class="bg-background font-body-md text-on-background antialiased"><aside class="fixed left-0 top-0 h-full w-[260px] bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="h-16 px-space-md flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><img alt="CV RAG AI Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XzC1fdjB_9CxSBN99qR_FPsjgR864M2qGy_cX6N0wTVlx49ArP6HnEs5xzmnfDjWRWVFPIrqoXXHRh6u7HgA47k05odmlZUq-m_qq6AMqYnnyg8fKRhQzFc4q9bPSM88w-1oUvo5k8dk82ijeDQw7jk-kQdCfh392-K_dzNhUun2cyGhSqw5RyzeoG9SX4MrybxucwMyswpyRlm4lq1Jc-vCEl4hxNrXifExijdiDtpQZYwRxPHhP7iCc"/><span class="font-headline-sm text-headline-sm text-primary tracking-tight">CV RAG AI</span></div><span class="px-space-xs py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-code-xs text-code-xs">v1.0 • F1</span></div><nav class="flex-1 px-space-sm py-space-sm space-y-space-md" data-active-classes="bg-primary-container text-on-primary"><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">1. Hỏi Đáp AI</span><span class="px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-code-xs text-code-xs font-semibold">F1</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat" href="#">Cuộc trò chuyện mới</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat-history" href="#">Hội thoại gần đây</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">2. Tuyển Dụng</span><span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F2</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="candidates" href="#">Ứng viên</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="evaluations-new" href="#">Đánh giá theo JD</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="matching" href="#">Tìm ứng viên theo JD</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="interviews" href="#">Câu hỏi phỏng vấn</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">3. Thư Mời</span><span class="px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-code-xs text-code-xs font-semibold">F3</span></div><a aria-current="page" class="block px-space-sm py-2 rounded-lg font-body-md transition-all bg-primary-container text-on-primary" data-path="emails-compose" href="#">Soạn thư</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="emails-bulk" href="#">Gửi hàng loạt</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="emails-history" href="#">Lịch sử gửi</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">4. Tiếp Nhận CV</span><span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F3</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ingestion-upload" href="#">Upload CV</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ingestion-jobs" href="#">Tác vụ xử lý</a></div><div class="space-y-space-xs"><div class="px-space-sm py-1 flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">5. Vận Hành &amp; Hệ Thống</span><span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-semibold">F4</span></div><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ops" href="#">System Ops</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ops-optimization" href="#">Đề xuất tối ưu</a><a class="block px-space-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="admin-users" href="#">Quản trị tài khoản</a></div></nav></div><div class="p-space-sm bg-surface-container-low"><div class="p-space-sm rounded-lg bg-surface-container-lowest flex flex-col gap-space-xs shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVowNiE6aztmPk4UMGnUrtT3Op7gWlbvgYvLWvTln4DDAU0wEQX4GeOCWaVrBayzynP7GW_AMNUw7seAAdbWUTbTO8-inLE0zHS8YQmyuByQVvZGXO4fF5EYseJzjaLdePjcahXu8R3FY-fjkqD47OLImUYSuqdtZbiM4LYHkkdv7amU5kgWRDzX_-3OfxOJnk9ie7RyU396KHFR7B6JM7SvEkAHTHJ32F3wDXtFTpt6ILDR7rCij8g"/><div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface font-semibold">Lê Thu Hương</span><span class="font-code-xs text-code-xs text-secondary">Admin (HR Dept)</span></div></div><button class="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded transition-colors" title="Đăng xuất an toàn" type="button"><span class="material-symbols-outlined text-lg">logout</span></button></div><div class="pt-1 flex items-center justify-between text-on-surface-variant font-code-xs text-code-xs"><span class="text-outline">Dept ID:</span><span class="font-mono text-on-surface font-medium">dept-tech-hr-01</span></div></div></div></aside><div class="pl-[260px]"><header class="fixed top-0 left-[260px] right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-outline text-lg">mail</span><div class="flex items-center gap-1.5 font-label-md text-label-md text-on-surface-variant"><span class="">Trang chủ</span><span class="text-outline-variant">/</span><span class="">Thư mời</span><span class="text-outline-variant">/</span><span class="text-on-surface font-medium">Soạn thư mời phỏng vấn</span></div></div><div class="flex items-center gap-space-md"><div class="hidden sm:flex items-center gap-space-xs px-space-sm py-1 rounded bg-secondary-container text-on-secondary-container font-code-xs text-code-xs"><span class="w-2 h-2 rounded-full bg-surface-tint animate-pulse"></span><span class="">Hệ thống: Đang hoạt động</span></div><button class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Trợ giúp &amp; Hướng dẫn" type="button"><span class="material-symbols-outlined text-xl">help</span></button><button class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Chuyển giao diện" type="button"><span class="material-symbols-outlined text-xl">palette</span></button><div class="h-4 w-px bg-outline-variant"></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVowNiE6aztmPk4UMGnUrtT3Op7gWlbvgYvLWvTln4DDAU0wEQX4GeOCWaVrBayzynP7GW_AMNUw7seAAdbWUTbTO8-inLE0zHS8YQmyuByQVvZGXO4fF5EYseJzjaLdePjcahXu8R3FY-fjkqD47OLImUYSuqdtZbiM4LYHkkdv7amU5kgWRDzX_-3OfxOJnk9ie7RyU396KHFR7B6JM7SvEkAHTHJ32F3wDXtFTpt6ILDR7rCij8g"/></div></header><main class="relative pt-16 w-full min-h-screen bg-background"><div class="flex flex-col w-full">
+<!-- Content Container with strict enterprise layout -->
+<div class="px-margin md:px-margin-desktop py-space-md space-y-space-md">
+<!-- Top Action & Context Header -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm pb-space-xs">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-xs">
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-semibold hover:underline" href="#">
+<span class="material-symbols-outlined text-base">arrow_back</span>
+            Quay lại hồ sơ ứng viên (CAND-2024-0891)
+          </a>
+<span class="text-outline-variant">•</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface-variant font-code-xs text-code-xs font-medium">MAIL-01</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-on-surface">Soạn thư mời phỏng vấn ứng viên</h1>
+</div>
+<div class="flex items-center flex-wrap gap-space-xs">
+<button class="inline-flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container transition-colors font-body-sm text-body-sm font-medium" type="button">
+<span class="material-symbols-outlined text-base text-secondary">save</span>
+          Lưu bản nháp
+        </button>
+<button class="inline-flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container transition-colors font-body-sm text-body-sm font-medium" id="btn-test-email" type="button">
+<span class="material-symbols-outlined text-base text-secondary">send</span>
+          Gửi thử nghiệm (Test Email)
+        </button>
+<button class="inline-flex items-center gap-1.5 px-space-lg py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container shadow-sm transition-all font-body-sm text-body-sm font-semibold" type="button">
+<span class="material-symbols-outlined text-base">outgoing_mail</span>
+          Xác nhận &amp; Gửi thư mời
+        </button>
+</div>
+</div>
+<!-- Duplicate Prevention & Safeguard Banner -->
+<div class="p-space-sm rounded-lg bg-surface-container-low shadow-sm flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-primary text-xl mt-0.5">verified_user</span>
+<div class="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-on-surface">
+<p class="font-body-sm text-body-sm">
+<strong class="font-semibold text-primary">Cơ chế an toàn tự động:</strong> Ứng viên <strong>Nguyễn Minh Tuấn</strong> chưa nhận thư mời cho vòng <em>Phỏng vấn Kỹ thuật Chuyên sâu</em>. Hệ thống đã khóa kênh chống gửi trùng lặp (Anti-duplicate lock enabled).
+        </p>
+<div class="flex items-center gap-1 text-secondary font-code-xs text-code-xs">
+<span class="w-2 h-2 rounded-full bg-surface-tint"></span>
+          ID Kiểm duyệt: SEC-DEDUP-8921
+        </div>
+</div>
+</div>
+<!-- Two-Column Workspace Layout (35% / 65%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
+<!-- LEFT COLUMN: Candidate Summary & Interview Details (lg:col-span-4 or 5 -> using 4.2 / 7.8 ~ 35/65) -->
+<div class="lg:col-span-4 space-y-space-md">
+<!-- Candidate Summary Card -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-12 h-12 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-headline-sm text-headline-sm">
+                MT
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface">Nguyễn Minh Tuấn</span>
+</div>
+<span class="font-code-xs text-code-xs text-secondary font-mono">CAND-2024-0891</span>
+</div>
+</div>
+<button class="text-secondary hover:text-primary p-1 rounded hover:bg-surface-container transition-colors" title="Đổi ứng viên khác" type="button">
+<span class="material-symbols-outlined text-lg">swap_horiz</span>
+</button>
+</div>
+<div class="py-space-xs space-y-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary">badge</span> Vị trí
+              </span>
+<span class="font-semibold text-on-surface text-right">Senior Backend Golang</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary">account_balance</span> Khối đơn vị
+              </span>
+<span class="text-on-surface text-right">Khối Ngân hàng số (TechFin)</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary">mail</span> Email
+              </span>
+<span class="font-mono text-on-surface text-right text-xs">tuan.nguyen@example.com</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary">call</span> Điện thoại
+              </span>
+<span class="font-mono text-on-surface text-right text-xs">0912.839.201</span>
+</div>
+</div>
+<!-- Compatibility Score Indicator -->
+<div class="p-space-xs rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">auto_graph</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Độ tương thích JD (RAG)</span>
+</div>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm font-bold bg-secondary-container text-on-secondary-container">
+              92 / 100
+            </span>
+</div>
+</div>
+<!-- Interview Configuration Form -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm space-y-space-sm">
+<div class="flex items-center justify-between pb-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-xl">event_available</span>
+              Thông số buổi phỏng vấn
+            </h2>
+<span class="font-code-xs text-code-xs text-secondary font-medium">BƯỚC 2/3</span>
+</div>
+<!-- Interview Round -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Vòng phỏng vấn</label>
+<div class="relative">
+<select class="w-full pl-3 pr-8 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none">
+<option selected="">Vòng 2: Phỏng vấn Kỹ thuật Chuyên sâu (Technical Deep-Dive)</option>
+<option>Vòng 1: Phỏng vấn Văn hóa &amp; Tổng quát HR</option>
+<option>Vòng 3: Phỏng vấn Ban Điều hành &amp; Giám đốc Khối</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-secondary pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- Interview Format Toggle -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Hình thức phỏng vấn</label>
+<div class="grid grid-cols-2 p-1 rounded-lg bg-surface-container-low gap-1">
+<button class="py-1.5 text-center rounded-lg bg-surface-container-lowest shadow-sm text-primary font-body-sm text-body-sm font-semibold flex items-center justify-center gap-1" type="button">
+<span class="material-symbols-outlined text-base">videocam</span>
+                Trực tuyến
+              </button>
+<button class="py-1.5 text-center rounded-lg text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm font-medium flex items-center justify-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-base">business</span>
+                Tại văn phòng
+              </button>
+</div>
+</div>
+<!-- Date & Time Row -->
+<div class="grid grid-cols-2 gap-space-xs">
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Ngày phỏng vấn</label>
+<div class="relative">
+<input class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" type="text" value="24/10/2024"/>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-secondary text-base">calendar_today</span>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Khung giờ (Thời lượng)</label>
+<input class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" type="text" value="09:30 - 11:00 (90p)"/>
+</div>
+</div>
+<!-- Meeting Link -->
+<div class="space-y-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium flex items-center justify-between">
+<span>Đường dẫn cuộc họp trực tuyến</span>
+<span class="text-primary font-code-xs text-code-xs">Google Meet</span>
+</label>
+<div class="flex items-center gap-1">
+<input class="flex-1 px-3 py-2 rounded-lg bg-surface-container-low text-on-surface font-code-xs text-code-xs select-all focus:outline-none" readonly="" type="text" value="https://meet.google.com/cv-techfin-golang"/>
+<button class="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" title="Sao chép đường dẫn" type="button">
+<span class="material-symbols-outlined text-base">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Interviewers Panel -->
+<div class="space-y-1.5 pt-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Hội đồng phỏng vấn (Interviewers)</label>
+<div class="space-y-1.5">
+<div class="p-2 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center font-code-xs text-code-xs font-bold">
+                    QH
+                  </div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">TS. Trần Quang Huy</span>
+<span class="font-code-xs text-code-xs text-secondary">Head of Backend Engineering</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-base">check_circle</span>
+</div>
+<div class="p-2 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-code-xs text-code-xs font-bold">
+                    TH
+                  </div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">Lê Thu Hương</span>
+<span class="font-code-xs text-code-xs text-secondary">Lead HR Recruiter (Chủ trì)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-base">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Template Selector -->
+<div class="space-y-1 pt-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Mẫu thư mời chuẩn hóa</label>
+<div class="relative">
+<select class="w-full pl-3 pr-8 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none">
+<option selected="">Thư mời Phỏng vấn Kỹ thuật - Vị trí Senior/Lead (Khối Fintech)</option>
+<option>Thư mời Phỏng vấn Sơ loại - Khối Công nghệ Thông tin</option>
+<option>Thư mời Phỏng vấn Tiếng Anh &amp; Đánh giá Chuyên gia</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-secondary pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- AI Assistant Action Trigger -->
+<div class="pt-2">
+<button class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-sm text-body-sm font-semibold flex items-center justify-center gap-2 transition-all" type="button">
+<span class="material-symbols-outlined text-lg animate-spin" style="animation-duration: 4s;">psychology</span>
+              Tự động tái tạo nội dung thư từ CV &amp; JD
+            </button>
+<div class="flex items-center justify-center gap-1 mt-1 font-code-xs text-code-xs text-secondary">
+<span class="material-symbols-outlined text-xs text-surface-tint">check</span>
+              Đã đồng bộ hóa 4 trích dẫn kỹ năng từ CV ứng viên
+            </div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Email Editor & Live Preview (lg:col-span-8 ~ 65%) -->
+<div class="lg:col-span-8 space-y-space-md">
+<!-- Editor Container with integrated Tabs -->
+<div class="rounded-xl bg-surface-container-lowest shadow-sm flex flex-col overflow-hidden">
+<!-- View Tabs & State Header -->
+<div class="px-space-md pt-space-sm bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<button class="px-space-md py-2.5 rounded-t-lg bg-surface-container-lowest text-primary font-headline-sm text-headline-sm font-semibold flex items-center gap-1.5" id="tab-editor-btn" type="button">
+<span class="material-symbols-outlined text-base">edit_note</span>
+                Chỉnh sửa nội dung thư (Editor)
+              </button>
+<button class="px-space-md py-2.5 rounded-t-lg text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm font-medium flex items-center gap-1.5 transition-colors" id="tab-preview-btn" type="button">
+<span class="material-symbols-outlined text-base">visibility</span>
+                Xem trước giao diện thư gửi đi (Preview)
+              </button>
+</div>
+<div class="hidden sm:flex items-center gap-1.5 pb-2 text-secondary font-code-xs text-code-xs">
+<span class="w-2 h-2 rounded-full bg-surface-tint"></span>
+              Định dạng: HTML Enterprise Mailer
+            </div>
+</div>
+<!-- EDITOR VIEW (Default Active) -->
+<div class="p-space-md space-y-space-sm" id="view-editor">
+<!-- Recipients & Subject Grid -->
+<div class="space-y-space-xs">
+<!-- To Field -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-2">
+<span class="w-24 font-label-md text-label-md text-on-surface-variant font-medium">Người nhận (To):</span>
+<div class="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm">
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-medium font-body-sm text-body-sm flex items-center gap-1">
+                    Nguyễn Minh Tuấn
+                    <span class="font-code-xs text-code-xs opacity-75">&lt;tuan.nguyen@example.com&gt;</span>
+</span>
+</div>
+</div>
+<!-- CC Field -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-2">
+<span class="w-24 font-label-md text-label-md text-on-surface-variant font-medium">Đồng kính gửi (CC):</span>
+<div class="flex-1 flex flex-wrap items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-code-xs text-code-xs flex items-center gap-1">
+                    huy.tran@techfin.vn (Interviewer)
+                    <button class="hover:text-error" type="button"><span class="material-symbols-outlined text-xs">close</span></button>
+</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-code-xs text-code-xs flex items-center gap-1">
+                    hr-recruitment@company.com
+                    <button class="hover:text-error" type="button"><span class="material-symbols-outlined text-xs">close</span></button>
+</span>
+</div>
+</div>
+<!-- Subject Field -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-2">
+<span class="w-24 font-label-md text-label-md text-on-surface-variant font-medium">Tiêu đề thư:</span>
+<input class="flex-1 px-3 py-2 rounded-lg bg-surface text-on-surface font-body-md text-body-md font-semibold focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" type="text" value="[TechFin Digital Bank] Thư mời Tham dự Phỏng vấn Kỹ thuật Chuyên sâu — Vị trí Senior Backend Golang"/>
+</div>
+</div>
+<!-- Rich Text Toolbar -->
+<div class="p-1 rounded-lg bg-surface-container-low flex flex-wrap items-center justify-between gap-1">
+<div class="flex items-center flex-wrap gap-0.5">
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant font-bold text-xs" title="Bold" type="button">B</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant italic text-xs font-serif" title="Italic" type="button">I</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant underline text-xs" title="Underline" type="button">U</button>
+<div class="h-4 w-px bg-outline-variant mx-1"></div>
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant" title="Bullet List" type="button">
+<span class="material-symbols-outlined text-sm">format_list_bulleted</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant" title="Numbered List" type="button">
+<span class="material-symbols-outlined text-sm">format_list_numbered</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant" title="Insert Link" type="button">
+<span class="material-symbols-outlined text-sm">link</span>
+</button>
+</div>
+<!-- Dynamic Variable Chips Selector -->
+<div class="flex items-center gap-1">
+<span class="font-code-xs text-code-xs text-secondary hidden md:inline">Chèn biến động:</span>
+<button class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary hover:bg-primary hover:text-on-primary font-code-xs text-code-xs transition-colors" type="button">
+                  {Candidate_Name}
+                </button>
+<button class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary hover:bg-primary hover:text-on-primary font-code-xs text-code-xs transition-colors" type="button">
+                  {Interview_Time}
+                </button>
+<button class="px-1.5 py-0.5 rounded bg-surface-container-high text-primary hover:bg-primary hover:text-on-primary font-code-xs text-code-xs transition-colors" type="button">
+                  {Meet_Link}
+                </button>
+</div>
+</div>
+<!-- Email Body Content Area (Interactive Formatted Representation) -->
+<div class="min-h-[460px] p-space-lg rounded-lg bg-surface text-on-surface font-body-md text-body-md space-y-4 focus:outline-none focus:ring-2 focus:ring-primary shadow-inner" contenteditable="true">
+<p>Kính gửi Anh <strong>Nguyễn Minh Tuấn</strong>,</p>
+<p>Lời đầu tiên, Ban Tuyển dụng &amp; Khối Công nghệ Ngân hàng số <strong>TechFin Digital Bank</strong> xin gửi lời chào trân trọng và cảm ơn Anh đã quan tâm đến cơ hội đồng hành cùng chúng tôi tại vị trí <strong>Senior Backend Golang Engineer</strong>.</p>
+<p>Hội đồng chuyên môn đánh giá rất cao hồ sơ năng lực của Anh, đặc biệt là kinh nghiệm thực chiến hơn 5 năm trong việc xây dựng, tối ưu hóa hệ thống cổng thanh toán Gateway chịu tải cao (High-throughput &amp; Concurrency) cũng như khả năng thiết kế kiến trúc phân tán đảm bảo tính toàn vẹn Idempotency.</p>
+<p>Chúng tôi trân trọng kính mời Anh tham dự buổi <strong>Phỏng vấn Kỹ thuật Chuyên sâu (Technical Deep-Dive)</strong> với các thông số chi tiết như sau:</p>
+<div class="p-space-md rounded-lg bg-surface-container-low space-y-2 font-body-sm text-body-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">calendar_month</span>
+<strong>Thời gian:</strong> 09:30 – 11:00 (90 phút), Thứ Năm — Ngày 24/10/2024
+                </div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">videocam</span>
+<strong>Hình thức:</strong> Phỏng vấn Trực tuyến qua Google Meet
+                </div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">link</span>
+<strong>Đường dẫn tham dự:</strong> <a class="text-primary underline font-mono" href="https://meet.google.com/cv-techfin-golang">https://meet.google.com/cv-techfin-golang</a>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-base mt-0.5">group</span>
+<div>
+<strong>Thành phần Hội đồng:</strong>
+<ul class="list-disc pl-5 mt-0.5 space-y-0.5">
+<li>TS. Trần Quang Huy — Head of Backend Engineering</li>
+<li>Bà Lê Thu Hương — Lead HR Recruiter (Điều phối &amp; Ghi nhận)</li>
+</ul>
+</div>
+</div>
+</div>
+<p><strong>Nội dung trọng tâm của buổi trao đổi:</strong></p>
+<ul class="list-disc pl-6 space-y-1 text-on-surface-variant">
+<li>Trao đổi sâu về các bài toán phân tán, cơ chế khóa phân tán (Distributed Locks) và tính năng Idempotent Transaction trong core banking.</li>
+<li>Thảo luận về kiến trúc Microservices hiện tại của TechFin và các thách thức về tải thực tế.</li>
+<li>Lắng nghe nguyện vọng phát triển sự nghiệp và định hướng kỹ thuật cá nhân từ Anh Tuấn.</li>
+</ul>
+<p>Anh Tuấn vui lòng phản hồi email này trước <strong>17:00 ngày 23/10/2024</strong> để xác nhận sự hiện diện. Trường hợp cần sắp xếp lại thời gian, Anh vui lòng liên hệ trực tiếp phụ trách tuyển dụng.</p>
+<p class="pt-2">Chúc Anh có một buổi phỏng vấn đạt kết quả cao nhất!</p>
+<div class="pt-4 space-y-1 text-on-surface-variant font-body-sm text-body-sm">
+<p>Trân trọng,</p>
+<p class="font-bold text-on-surface">Lê Thu Hương (Ms.)</p>
+<p>Lead Talent Acquisition Partner — TechFin Digital Bank</p>
+<p>Tầng 18, Tháp Tài chính TechFin, Quận 1, TP. Hồ Chí Minh</p>
+<p class="font-mono text-xs">Hotline: 028.7300.9999 (Ext: 104) | Email: huong.le@techfin.vn</p>
+</div>
+</div>
+<!-- Attachment Section -->
+<div class="space-y-1.5 pt-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium flex items-center justify-between">
+<span>Tài liệu đính kèm ({2} tệp)</span>
+<button class="text-primary hover:underline text-xs flex items-center gap-1 font-body-sm" type="button">
+<span class="material-symbols-outlined text-sm">attach_file</span> Thêm tệp mới
+                </button>
+</label>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs">
+<div class="p-2 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="material-symbols-outlined text-primary text-xl">picture_as_pdf</span>
+<div class="flex flex-col truncate">
+<span class="font-body-sm text-body-sm font-medium text-on-surface truncate">Huong_dan_phong_van_online_TechFin.pdf</span>
+<span class="font-code-xs text-code-xs text-secondary">1.2 MB • Hướng dẫn kỹ thuật</span>
+</div>
+</div>
+<button class="p-1 text-on-surface-variant hover:text-error rounded transition-colors" title="Gỡ file đính kèm" type="button">
+<span class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+<div class="p-2 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2 overflow-hidden">
+<span class="material-symbols-outlined text-primary text-xl">picture_as_pdf</span>
+<div class="flex flex-col truncate">
+<span class="font-body-sm text-body-sm font-medium text-on-surface truncate">Ban_mo_ta_cong_viec_Senior_Golang.pdf</span>
+<span class="font-code-xs text-code-xs text-secondary">450 KB • JD Chuẩn hóa</span>
+</div>
+</div>
+<button class="p-1 text-on-surface-variant hover:text-error rounded transition-colors" title="Gỡ file đính kèm" type="button">
+<span class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- PREVIEW VIEW (Initially hidden, toggled via JS) -->
+<div class="p-space-lg bg-surface-container-low hidden space-y-space-md" id="view-preview">
+<div class="max-w-2xl mx-auto bg-surface-container-lowest rounded-xl shadow-md overflow-hidden">
+<div class="bg-primary p-space-md text-on-primary flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-2xl">apartment</span>
+<span class="font-headline-sm text-headline-sm tracking-wide">TechFin Digital Bank</span>
+</div>
+<span class="font-code-xs text-code-xs bg-surface/20 px-2 py-0.5 rounded">Official Interview Invitation</span>
+</div>
+<div class="p-space-lg space-y-4 text-on-surface font-body-md text-body-md">
+<h3 class="font-headline-sm text-headline-sm text-primary">Thư mời Tham dự Phỏng vấn Kỹ thuật Chuyên sâu</h3>
+<p>Kính gửi Anh <strong>Nguyễn Minh Tuấn</strong>,</p>
+<p>TechFin Digital Bank xin trân trọng thông báo lịch phỏng vấn vị trí <strong>Senior Backend Golang Engineer</strong> vào lúc <strong>09:30 - 11:00 (24/10/2024)</strong> qua kênh trực tuyến Google Meet.</p>
+<div class="p-3 rounded-lg bg-surface-container space-y-1 font-body-sm text-body-sm">
+<p><strong>Người phỏng vấn:</strong> TS. Trần Quang Huy &amp; Lê Thu Hương</p>
+<p><strong>Link tham gia:</strong> https://meet.google.com/cv-techfin-golang</p>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Vui lòng kiểm tra thiết bị tai nghe, camera và đường truyền internet 10 phút trước giờ hẹn.</p>
+</div>
+<div class="bg-surface-container p-space-sm text-center text-secondary font-code-xs text-code-xs">
+                Email tự động sinh từ hệ thống Quản lý Tuyển dụng AI TechFin. Mọi thắc mắc vui lòng liên hệ hr-recruitment@company.com
+              </div>
+</div>
+</div>
+<!-- Editor Footer Actions & Status -->
+<div class="p-space-md bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2 text-secondary font-code-xs text-code-xs">
+<span class="material-symbols-outlined text-sm text-surface-tint">check_circle</span>
+<span>Đã tự động lưu nháp 1 phút trước</span>
+<span>•</span>
+<span class="font-mono">Mã nháp: DRAFT-MAIL-8921</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-space-md py-2 rounded-lg bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container font-body-sm text-body-sm font-medium transition-colors" id="btn-toggle-preview" type="button">
+                Xem trước trước khi gửi
+              </button>
+<button class="px-space-lg py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container shadow-sm font-body-sm text-body-sm font-semibold transition-all" type="button">
+                Xác nhận &amp; Gửi thư mời phỏng vấn
+              </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const tabEditorBtn = document.getElementById('tab-editor-btn');
+    const tabPreviewBtn = document.getElementById('tab-preview-btn');
+    const btnTogglePreview = document.getElementById('btn-toggle-preview');
+    const viewEditor = document.getElementById('view-editor');
+    const viewPreview = document.getElementById('view-preview');
+    const btnTestEmail = document.getElementById('btn-test-email');
+
+    function showEditor() {
+      viewEditor.classList.remove('hidden');
+      viewPreview.classList.add('hidden');
+      tabEditorBtn.className = "px-space-md py-2.5 rounded-t-lg bg-surface-container-lowest text-primary font-headline-sm text-headline-sm font-semibold flex items-center gap-1.5";
+      tabPreviewBtn.className = "px-space-md py-2.5 rounded-t-lg text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm font-medium flex items-center gap-1.5 transition-colors";
+      btnTogglePreview.textContent = "Xem trước trước khi gửi";
+    }
+
+    function showPreview() {
+      viewEditor.classList.add('hidden');
+      viewPreview.classList.remove('hidden');
+      tabPreviewBtn.className = "px-space-md py-2.5 rounded-t-lg bg-surface-container-lowest text-primary font-headline-sm text-headline-sm font-semibold flex items-center gap-1.5";
+      tabEditorBtn.className = "px-space-md py-2.5 rounded-t-lg text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm font-medium flex items-center gap-1.5 transition-colors";
+      btnTogglePreview.textContent = "Quay lại chỉnh sửa thư";
+    }
+
+    if (tabEditorBtn && tabPreviewBtn) {
+      tabEditorBtn.addEventListener('click', showEditor);
+      tabPreviewBtn.addEventListener('click', showPreview);
+    }
+
+    if (btnTogglePreview) {
+      btnTogglePreview.addEventListener('click', function() {
+        if (viewPreview.classList.contains('hidden')) {
+          showPreview();
+        } else {
+          showEditor();
+        }
+      });
+    }
+
+    if (btnTestEmail) {
+      btnTestEmail.addEventListener('click', function() {
+        const originalText = btnTestEmail.innerHTML;
+        btnTestEmail.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">refresh</span> Đang gửi test...';
+        btnTestEmail.disabled = true;
+        setTimeout(() => {
+          btnTestEmail.innerHTML = '<span class="material-symbols-outlined text-base text-surface-tint">check</span> Đã gửi test tới hộp thư!';
+          setTimeout(() => {
+            btnTestEmail.innerHTML = originalText;
+            btnTestEmail.disabled = false;
+          }, 2500);
+        }, 1200);
+      });
+    }
+  })();
+</script></main></div>
+</body></html>

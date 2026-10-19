@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow"><title>Review thiết kế F1 — CV RAG AI</title>
+<link rel="stylesheet" href="shared/f1.css">
+</head>
+<body>
+<main class="gallery">
+<header class="gallery-header"><a class="brand" href="index.html"><span class="brand-mark">CV</span><span><strong>CV RAG AI</strong><small>Thiết kế giao diện</small></span></a><span class="badge">Bản review · 19/10/2026</span></header>
+<section class="gallery-intro"><p class="eyebrow">Auth · Workspace · Chat</p><h1>Một không gian tuyển dụng,<br>rõ ràng ở từng trạng thái.</h1><p>Giữ hướng hình ảnh từ Stitch, chuẩn hóa luồng đăng nhập, lịch sử riêng và xác nhận JD theo contract API hiện tại.</p></section>
+<div class="notice warning"><div><strong>Đây là prototype để duyệt thiết kế.</strong><p>Dữ liệu và tương tác đều minh họa. Không gọi FastAPI/Gemini, không lưu mật khẩu hay token. Dùng thông tin mẫu để thử đăng nhập. Vai trò ở đây chỉ phục vụ xem thiết kế.</p></div></div>
+<fieldset class="role-picker"><legend>Chọn vai trò để review</legend><label><input type="radio" name="preview-role" value="admin" checked> Admin</label><label><input type="radio" name="preview-role" value="tester"> Tester</label></fieldset>
+<section class="gallery-section"><h2>Ba màn hình chính</h2><div class="gallery-grid">
+<a class="preview-card" data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin"><p class="eyebrow">Đăng nhập</p><h3>Tài khoản được cấp</h3><p>Username/password, thông báo lỗi và phiên hết hạn. Bấm đăng nhập với thông tin mẫu để đi sang chat.</p><span class="card-link">Xem màn đăng nhập →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=pending"><p class="eyebrow">Hỏi đáp AI</p><h3>Chat và xác nhận JD</h3><p>Danh sách hội thoại, nhiều form JD, feedback và dialog xóa. Thu nhỏ trình duyệt để thử drawer mobile.</p><span class="card-link">Xem không gian chat →</span></a>
+<a class="preview-card" data-demo href="sys_01_kh_ng_quy_n_truy_c_p_403/code.html?role=admin"><p class="eyebrow">Phân quyền</p><h3>Không đủ quyền</h3><p>Identity nhất quán với vai trò đã chọn. Có lối quay về chat, không có thao tác nâng quyền giả.</p><span class="card-link">Xem màn 403 →</span></a>
+</div></section>
+<section class="gallery-section"><h2>Các trạng thái chat cần nghiệm thu</h2><p>Mỗi link mở một tình huống riêng. Dữ liệu thay đổi trong bộ nhớ và trở về mẫu khi reload.</p><div class="gallery-grid"><a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=empty"><h3>Chat mới</h3><p>Bắt đầu với gợi ý câu hỏi và composer.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=answer"><h3>Câu trả lời</h3><p>Lịch sử dạng text, sao chép và feedback.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=pending"><h3>Xác nhận JD</h3><p>Sửa tiêu chí, xác nhận hoặc hủy.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=multiple"><h3>Nhiều yêu cầu JD</h3><p>Mỗi card có confirmation ID và dữ liệu riêng.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=running"><h3>Đang xử lý</h3><p>Khóa gửi lặp, kiểm tra trạng thái.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=loading"><h3>Đang tải lịch sử</h3><p>Loading có nhãn cho screen reader.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=failed"><h3>Lượt bị lỗi</h3><p>Giữ lịch sử và mở hội thoại mới.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=interrupted"><h3>Lượt bị gián đoạn</h3><p>Không tự chạy lại thao tác AI.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=unavailable"><h3>Dịch vụ không khả dụng</h3><p>Thông báo 503 an toàn, có mã hỗ trợ.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=timeout"><h3>Mất phản hồi</h3><p>Đọc trạng thái trước khi gửi tiếp.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=recovering"><h3>Khôi phục kết nối</h3><p>Không tự gửi lại POST.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=stale"><h3>Tiêu chí đã thay đổi</h3><p>Tải lại form, không dùng confirmation cũ.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=not-found"><h3>Hội thoại không còn</h3><p>Thông báo 404 không lộ chủ sở hữu.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=cleanup"><h3>Xóa chưa dọn xong</h3><p>Giữ đường thử lại DELETE sau khi thread đã ẩn.</p><span class="card-link">Mở trạng thái →</span></a>
+<a class="preview-card" data-demo href="chat_02_kh_ng_gian_h_i_tho_i_x_c_nh_n_jd/code.html?role=admin&amp;state=expired"><h3>Phiên hết hạn</h3><p>Về login với thông báo, không lộ lịch sử.</p><span class="card-link">Mở trạng thái →</span></a></div></section>
+<section class="gallery-section"><h2>Các trạng thái đăng nhập</h2><div class="state-links">
+<a data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin&amp;mode=error">Thông tin không hợp lệ</a>
+<a data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin&amp;mode=unavailable">Backend tạm không khả dụng</a>
+<a data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin&amp;mode=pending">Đang đăng nhập</a>
+<a data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin&amp;mode=expired">Phiên hết hạn</a>
+<a data-demo href="auth_01_ng_nh_p_h_th_ng/code.html?role=admin&amp;mode=signed-out">Đã đăng xuất</a>
+</div></section>
+<details><summary>Các màn Stitch cho các đợt tiếp theo</summary><p class="small muted" style="margin-top:12px">Bản tham khảo ban đầu, còn các field/chức năng cần đối chiếu backend trước khi triển khai. Chưa áp dụng bản chuẩn hóa F1 vào các màn này.</p><div class="original-links"><a href="adm_01_qu_n_l_t_i_kho_n_ng_i_d_ng/code.html">Quản lý tài khoản</a><a href="adm_02_03_ph_ng_ban_v_tr_tuy_n_d_ng/code.html">Phòng ban và vị trí tuyển dụng</a><a href="cand_01_danh_s_ch_l_c_h_s_ng_vi_n/code.html">Danh sách ứng viên</a><a href="cand_02_h_s_chi_ti_t_ng_vi_n_nguy_n_minh_tu_n/code.html">Hồ sơ ứng viên</a><a href="home_01_b_ng_i_u_h_nh_tuy_n_d_ng_tr_l_cv_ai/code.html">Tổng quan tuyển dụng</a><a href="ing_01_ti_p_nh_n_t_i_l_n_h_s_cv/code.html">Upload CV</a><a href="int_01_chu_n_b_sinh_b_c_u_h_i_ph_ng_v_n_g_i/code.html">Câu hỏi phỏng vấn</a><a href="mail_01_so_n_th_m_i_ph_ng_v_n_ng_vi_n_nguy_n_minh_tu_n/code.html">Soạn thư mời</a><a href="mail_02_so_n_duy_t_th_m_i_ph_ng_v_n_h_ng_lo_t/code.html">Duyệt thư hàng loạt</a><a href="mail_03_theo_d_i_ti_n_g_i_th_h_ng_lo_t/code.html">Tiến độ gửi thư</a><a href="mail_04_l_ch_s_g_i_th_m_i/code.html">Lịch sử gửi thư</a><a href="match_01_kh_p_n_i_x_p_h_ng_top_k_ng_vi_n_theo_jd/code.html">Top-K theo JD</a><a href="ops_01_gi_m_s_t_v_n_h_nh_hi_u_n_ng_ai/code.html">System Ops</a></div></details>
+<p class="small muted" style="margin-top:30px">Tài liệu bàn giao: <a href="README.md">README</a> · <a href="cognitive_talent_system/DESIGN.md">DESIGN.md</a></p>
+</main>
+<script>
+function updateRole(role) {
+ document.querySelectorAll('[data-demo]').forEach(link => { const url = new URL(link.href); url.searchParams.set('role', role); link.href = url.href; });
+}
+document.querySelectorAll('[name="preview-role"]').forEach(input => input.addEventListener('change', () => updateRole(input.value)));
+</script>
+</body></html>
