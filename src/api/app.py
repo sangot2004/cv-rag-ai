@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from src.api.exception_handlers import error_response
 from src.api.middleware import RequestIdMiddleware
-from src.api.routes import auth, chat, conversations, health
+from src.api.routes import auth, candidates, chat, conversations, health, interviews, emails, management, ingestion
 from src.chat.checkpoints import close_checkpointer
 
 
@@ -33,6 +33,6 @@ def create_app() -> FastAPI:
                        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
                        allow_headers=["Authorization", "Content-Type"],
                        expose_headers=["X-Request-ID"])
-    for router in (health.router, auth.router, conversations.router, chat.router):
+    for router in (health.router, auth.router, conversations.router, chat.router, candidates.router, interviews.router, emails.router, management.router, ingestion.router):
         app.include_router(router)
     return app

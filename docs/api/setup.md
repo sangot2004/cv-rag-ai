@@ -83,6 +83,9 @@ Hai tester cùng phòng ban cũng có lịch sử riêng. 10. Xóa hội thoại
 
 ## 4. Chạy test offline
 
+API ứng viên mới nằm trong nhóm **candidates**, gồm GET danh sách và GET chi tiết,
+chỉ dành cho admin. Xem [cách test và bộ lọc](candidates.md). Restart API để nạp routes mới.
+
 ```bash
 LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false OPS_ENABLED=false \
   python -m pytest tests/api tests/test_double_opt_in.py -q
@@ -100,3 +103,11 @@ các provider thật để kiểm chứng cấu hình triển khai.
 Môi trường kiểm chứng: Python 3.12; FastAPI 0.143.2; Uvicorn 0.52.4;
 Starlette 1.6.0; LangGraph 1.2.11; LangChain 1.3.15; SQLite checkpointer 3.1.1;
 Pydantic 2.13.4; httpx 0.28.1.
+
+Nhóm **interviews** cho admin: xem [API câu hỏi phỏng vấn](interviews.md). Cần restart FastAPI sau cập nhật; dùng một worker như cấu hình hiện tại.
+
+Module email cần migration `0013` và Celery worker để gửi. Hướng dẫn: [emails.md](emails.md). Nháp không tự gửi.
+
+Quản trị phòng ban/vị trí/tài khoản, gán CV, upload và theo dõi tác vụ cần migration
+`0014`. Upload cần MinIO/Redis; xử lý dùng worker/pipeline hiện có. Xem
+[administration-ingestion.md](administration-ingestion.md) để chạy và kiểm chứng từng bước.

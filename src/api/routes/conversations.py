@@ -1,11 +1,11 @@
 from typing import Annotated
-from uuid import UUID
 from fastapi import APIRouter, Body, Query, Response
 
 from src.api.dependencies import Token
 from src.api.schemas.common import ERROR_RESPONSES
 from src.api.schemas.conversations import CreateConversationRequest, ConversationResponse, ConversationList
 from src.api.schemas.chat import HistoryResponse
+from src.api.schemas.identifiers import ConversationId
 from src.auth.service import auth_scope
 from src.chat import conversation_store as store
 from src.chat.service import history
@@ -26,13 +26,13 @@ def list_owned(token: Token, limit: Annotated[int, Query(ge=1, le=50)] = 50):
 
 
 @router.get("/{thread_id}/messages", response_model=HistoryResponse)
-def messages(thread_id: UUID, token: Token):
+def messages(thread_id: ConversationId, token: Token):
     with auth_scope(token):
-        return history(str(thread_id))
+        return history(thread_id)
 
 
 @router.delete("/{thread_id}", status_code=204, response_class=Response)
-def delete(thread_id: UUID, token: Token):
+def delete(thread_id: ConversationId, token: Token):
     with auth_scope(token):
-        store.delete_conversation(str(thread_id))
+        store.delete_conversation(thread_id)
     return Response(status_code=204)

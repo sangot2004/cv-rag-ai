@@ -36,8 +36,15 @@ class EmailMessage:
 
 
 class GmailClient:
-    def __init__(self):
-        self.service = build("gmail", "v1", credentials=self._load_credentials())
+    def __init__(self, *, interactive: bool = True):
+        self.interactive = interactive
+        credentials = self._load_credentials()
+        if interactive:
+            self.service = build("gmail", "v1", credentials=credentials)
+        else:
+            import httplib2
+            from google_auth_httplib2 import AuthorizedHttp
+            self.service = build("gmail", "v1", http=AuthorizedHttp(credentials, http=httplib2.Http(timeout=60)), cache_discovery=False)
 
         profile = self.service.users().getProfile(userId="me").execute()
         logger.info("Gmail api đang xác thực với tài khoản: %s", profile["emailAddress"])
@@ -55,6 +62,8 @@ class GmailClient:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
+                if not self.interactive:
+                    raise RuntimeError("Gmail requires local OAuth setup before worker use")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     settings.GMAIL_CREDENTIALS_PATH, SCOPES
                 )
@@ -143,15 +152,24 @@ class GmailClient:
             else:
                 raise
 
-    def send_message(self, to: str, subject: str, body_text: str) -> str:
+    def send_message(self, to: str, subject: str, body_text: str, rfc_message_id: str | None = None) -> str:
         """Gửi 1 mail qua mail đang dùng để nhận cv"""
         import email.mime.text
 
         message = email.mime.text.MIMEText(body_text, "plain", "utf-8")
         message["to"] = to
         message["subject"] = subject
+        if rfc_message_id:
+            message["Message-ID"] = f"<{rfc_message_id}>"
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
-        sent = self.service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        sent = self.service.users().messages().send(userId="me", body={"raw": raw}).execute(num_retries=0)
 
         logger.info("Đã gửi email tới %s, message_id=%s", to, sent["id"])
         return sent["id"]
+
+
+    def find_sent_message(self, rfc_message_id: str) -> str | None:
+        response = self.service.users().messages().list(userId="me",
+            q=f"in:sent rfc822msgid:{rfc_message_id}", maxResults=1).execute(num_retries=0)
+        rows = response.get("messages", [])
+        return rows[0]["id"] if rows else None

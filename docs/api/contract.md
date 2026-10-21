@@ -1,6 +1,10 @@
-# API v0.1 — Auth và text chat
+# API v0.1 — Auth, text chat và ứng viên
 
 Prefix nghiệp vụ: `/api`. UUID truyền bằng chuỗi; thời gian ISO 8601 UTC.
+`thread_id` được xử lý như chuỗi định danh: hội thoại mới dùng UUID; hội thoại cũ
+có thể dùng ID như `test-cart`. Path nhận 1–36 ký tự chữ/số/`_`/`-`, bắt đầu bằng
+chữ hoặc số, giữ nguyên ID để truy cập đúng checkpoint cũ. Mọi thao tác vẫn kiểm
+tra chủ sở hữu; role admin không cho phép đọc hội thoại của người khác.
 Login nhận JSON; các endpoint còn lại nhận `Authorization: Bearer <token>`.
 Token opaque, được lưu băm trong DB. Role/phòng ban lấy từ session.
 Thông số và kiểu response đầy đủ xem `/openapi.json`.
@@ -20,9 +24,18 @@ Thông số và kiểu response đầy đủ xem `/openapi.json`.
 | POST | /api/conversations/{id}/messages | 200, kết quả chat |
 | POST | /api/conversations/{id}/resume | 200, kết quả chat |
 | POST | /api/conversations/{id}/feedback | 201, message_id và feedback |
+| GET | /api/candidates | 200, items/total/page/page_size/total_pages/has_next; admin |
+| GET | /api/candidates/{candidate_id} | 200, hồ sơ CV đã trích xuất; admin |
+| GET | /api/candidates/{candidate_id}/photo | 200, ảnh JPEG/PNG/WebP; admin |
+| GET | /api/candidates/{candidate_id}/interview-questions | 200, bộ câu hỏi đã lưu/revision/trạng thái; admin |
+| POST | /api/candidates/{candidate_id}/interview-questions/generate | 200, sinh và lưu bộ hợp lệ; admin |
+| DELETE | /api/candidates/{candidate_id}/interview-questions | 200, xóa theo expected_revision; admin |
 
 Danh sách tối đa 50 hội thoại, chưa có pagination đầy đủ. POST tạo hội thoại nhận
 `{}` hoặc bỏ body. Input từ chối trường ngoài schema, kể cả role/owner/department.
+
+API ứng viên là read-only, cần quyền admin. Xem [contract và cách test ứng viên](candidates.md)
+để biết bộ lọc, phân trang, quy tắc kỹ năng và các trường trả về.
 
 ## Gửi tin và đọc lại
 
@@ -139,7 +152,7 @@ idempotency key**. Lỗi không trả input mật khẩu, raw exception hay thô
 | --- | --- |
 | 401 | AUTHENTICATION_REQUIRED |
 | 403 | FORBIDDEN |
-| 404 | CONVERSATION_NOT_FOUND, MESSAGE_NOT_FOUND |
+| 404 | CONVERSATION_NOT_FOUND, MESSAGE_NOT_FOUND, CANDIDATE_NOT_FOUND, CANDIDATE_PHOTO_NOT_FOUND |
 | 409 | CONVERSATION_BUSY, CONFIRMATION_PENDING, NO_PENDING_CONFIRMATION, STALE_CONFIRMATION, EXECUTION_INCOMPLETE |
 | 422 | VALIDATION_ERROR |
 | 503 | DEPENDENCY_UNAVAILABLE, CONVERSATION_CLEANUP_PENDING |
@@ -155,6 +168,20 @@ idempotency key**. Lỗi không trả input mật khẩu, raw exception hay thô
 - Chat đồng bộ trong worker thread. Client timeout/disconnect không hủy graph;
   khóa chỉ nhả khi callable kết thúc. Không có deadline cho toàn bộ lượt chat.
   504 biểu diễn exception timeout từ dịch vụ phụ thuộc.
-- Chưa có queue chat, streaming, upload, API quản trị, distributed locks, rate limit
-  theo client, refresh token/cookie hoặc readiness.
+- Chưa có queue chat, streaming, khóa chat liên tiến trình, rate limit theo client,
+  refresh token hoặc readiness. Upload và quản trị xem contract riêng bên dưới;
+  khóa job ingestion trên MySQL không thay thế khóa chat.
 - CORS không thay thế xác thực.
+
+Contract câu hỏi phỏng vấn và lỗi tương ứng: [interviews.md](interviews.md).
+
+## Thư mời phỏng vấn
+
+API soạn nháp/lưu/duyệt gửi đơn lẻ và hàng loạt, tiến độ và lịch sử: [emails.md](emails.md).
+Cần migration `0013`, Redis/Celery worker và Gmail OAuth cho gửi thật.
+
+## Quản trị và tiếp nhận CV
+
+API phòng ban/vị trí/tài khoản, gán CV, upload PDF, danh sách/chi tiết và retry tác vụ:
+[administration-ingestion.md](administration-ingestion.md). Cần migration `0014`;
+chỉ admin truy cập. Nguồn upload qua web không yêu cầu Gmail OAuth.

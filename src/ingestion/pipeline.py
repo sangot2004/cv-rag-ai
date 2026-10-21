@@ -28,6 +28,7 @@ from src.retrieval.department_store import match_posting_for_position
 from src.storage.minio_client import MinioStorage
 from src.vectorstore.qdrant_client import QdrantStore
 from src.ops.telemetry import monitored
+from src.ingestion.locking import named_lock
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,10 @@ settings = get_settings()
 
 class CVIngestionError(Exception):
     """Lỗi có thể retry được (khác với lỗi validate — bị reject thẳng, không retry)."""
+
+
+class PipelineBusy(Exception):
+    """Another ingestion owns the global text-deduplication lock."""
 
 
 class CVRejected(Exception):
@@ -60,12 +65,25 @@ def _parse_date(date_str: str | None) -> date | None:
 
 @monitored('ingestion', ref='job_id')
 def run_ingestion_pipeline(job_id: str) -> str:
+    with named_lock("ingestion-pipeline") as locked:
+        if not locked:
+            raise PipelineBusy()
+        return _run_ingestion_pipeline(job_id)
+
+
+def _run_ingestion_pipeline(job_id: str) -> str:
     storage = MinioStorage()
 
     with SessionLocal() as session:
         job = session.get(IngestionJob, job_id)
         if job is None:
             raise CVIngestionError(f"job_id={job_id} không tồn tại")
+
+        existing_job_candidate = session.query(Candidate).filter(Candidate.source_job_id == job_id).first()
+        if existing_job_candidate:
+            job.candidate_id, job.status = existing_job_candidate.candidate_id, "indexed"
+            session.commit()
+            return existing_job_candidate.candidate_id
 
         # load file từ MinIO
         try:
@@ -120,7 +138,9 @@ def run_ingestion_pipeline(job_id: str) -> str:
             raise CVRejected("extraction_missing_full_name")
 
         # ghi candidates + bảng con
-        candidate_id = str(uuid.uuid4())
+        # Reuse IDs if Qdrant succeeded but the SQL transaction failed. Retry
+        # replaces the same candidate's points rather than leaving new orphans.
+        candidate_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "cv-ingestion:" + job_id))
         photo_object_key = None
         try:
             photo_bytes = extract_portrait_photo(file_bytes)
@@ -133,11 +153,12 @@ def run_ingestion_pipeline(job_id: str) -> str:
             # năng phụ (best-effort), CV vẫn xử lý bình thường không có ảnh.
             logger.exception("Lỗi khi tách/upload ảnh chân dung, bỏ qua (không chặn job)")
 
-        posting_id = None
-        try:
-            posting_id = match_posting_for_position(cv_data.applied_position)
-        except Exception:
-            logger.exception("Lỗi khi match posting, bỏ qua (không chặn job)")
+        posting_id = job.posting_id
+        if posting_id is None:
+            try:
+                posting_id = match_posting_for_position(cv_data.applied_position)
+            except Exception:
+                logger.exception("Lỗi khi match posting, bỏ qua (không chặn job)")
 
         candidate = Candidate(
             candidate_id=candidate_id,
@@ -223,11 +244,13 @@ def run_ingestion_pipeline(job_id: str) -> str:
 
             qdrant = QdrantStore()
             qdrant.ensure_collection()
+            qdrant.delete_by_candidate(candidate_id)
             qdrant.upsert_chunks(chunk_ids, vectors, payloads)
 
         # Update job cuối cùng
         job.candidate_id = candidate_id
         job.status = "indexed"
+        job.error_message, job.error_code, job.dispatch_error = None, None, None
         session.commit()
 
         logger.info("Ingestion hoàn tất: job_id=%s candidate_id=%s", job_id, candidate_id)

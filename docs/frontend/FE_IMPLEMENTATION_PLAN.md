@@ -1,16 +1,18 @@
 # CV RAG Agentic — Kế hoạch thiết kế và triển khai Frontend
 
 **Ngày lập:** 18/10/2026  
-**Trạng thái:** Bản kế hoạch để review thiết kế trước khi code FE.  
-**Vị trí dự kiến:** `frontend/` trong repository `cv-rag-ai`.  
+**Trạng thái:** F1 auth/chat, CAND-01/CAND-02, INT-01, MAIL-01/02/03/04, ING-01/02/03 và ADM-01/02/03 đã triển khai; các luồng AI cần nghiệm thu với dữ liệu thật.
+**Vị trí:** `frontend/` trong repository `cv-rag-ai`.
 **Phạm vi:** Toàn bộ giao diện sản phẩm, triển khai theo từng đợt dựa trên mức sẵn sàng của API.
 
 **Cập nhật thiết kế 19/10/2026:** đã chuẩn hóa prototype F1 từ HTML Stitch: login,
 shell admin/tester, danh sách hội thoại, JD confirmation và các trạng thái lỗi/mobile.
 Xem [hướng dẫn review](../../design/stitch_agentic_rag_cv_interface/README.md)
 và [quy tắc thiết kế](../../design/stitch_agentic_rag_cv_interface/cognitive_talent_system/DESIGN.md).
-Prototype dùng dữ liệu giả, chưa triển khai Next.js/BFF hoặc nối API; cần duyệt
-giao diện trước khi coi D0/F1 đã hoàn thành.
+Prototype trong `design/` dùng dữ liệu giả. FE Next.js/BFF và luồng auth/chat F1
+đã được triển khai trong `frontend/`; xem [hướng dẫn chạy FE](../../frontend/README.md).
+Thiết kế đã được người dùng duyệt. Cần kiểm thử thêm với backend/model thật trước
+khi nghiệm thu toàn luồng. Cập nhật 21/10/2026: CAND-01/CAND-02 đã triển khai; các phần còn lại của F2–F4 theo kế hoạch bên dưới.
 
 ## 1. Mục tiêu và căn cứ
 
@@ -34,10 +36,14 @@ Kế hoạch được đối chiếu với:
 API hiện hỗ trợ đăng nhập/đăng xuất, lấy identity, tạo/liệt kê/đọc/xóa hội thoại,
 gửi câu hỏi, resume theo confirmation ID và feedback theo message ID.
 
-Các nghiệp vụ ứng viên, đánh giá, email, phỏng vấn và Ops đã có phần xử lý Python
-hoặc giao diện Streamlit; cần thêm HTTP API trước khi nối các màn FE tương ứng.
-Một số màn như dashboard tổng quan, quản lý job/phòng ban và tiến độ upload là
-phần mở rộng sản phẩm, cần hoàn thiện cả service lẫn API.
+API đọc danh sách/chi tiết ứng viên đã có tại `GET /api/candidates` và
+`GET /api/candidates/{candidate_id}`, dành cho admin; xem [contract ứng viên](../api/candidates.md).
+Đã triển khai CAND-01 `/candidates` và CAND-02 `/candidates/[candidateId]` cho admin: tìm kiếm, lọc, phân trang và hồ sơ chi tiết. Bộ lọc/số trang lưu trong URL; lọc phòng ban/vị trí tuyển dụng bằng liên kết trên hồ sơ. Ảnh chân dung đã hiển thị dưới email trong danh sách qua API/BFF có xác thực. INT-01 đã triển khai API/FE câu hỏi phỏng vấn; xem [contract](../api/interviews.md). Endpoint PDF và các màn đánh giá/Top-K vẫn cần triển khai.
+
+Email, phỏng vấn, quản trị và tiếp nhận CV đã có HTTP API/FE. Quản trị gồm
+xem/tạo phòng ban và vị trí, xem/tạo/khóa/mở tài khoản; tiếp nhận gồm upload,
+theo dõi/khôi phục job và gán vị trí cho CV hiện có. Xem [contract và kiểm thử](../api/administration-ingestion.md).
+Đánh giá, Top-K, Ops và dashboard tổng quan còn theo kế hoạch phía dưới.
 
 ### 1.2. Cách chia phạm vi
 
@@ -328,6 +334,8 @@ không có ứng viên phù hợp, thành công và lỗi quota/provider.
 
 ### 5.8. MAIL-01/02/03/04 — Thư mời
 
+Đã triển khai API/FE và outbox lưu bền; chi tiết, giới hạn và cách chạy tại [emails.md](../api/emails.md).
+
 **Đơn lẻ:** chọn ứng viên → nhập vị trí và chi tiết phỏng vấn → tạo draft → chỉnh
 subject/body → xem trước người nhận → xác nhận gửi. Cảnh báo nếu đã gửi trước đó.
 Đổi ứng viên sau khi soạn phải reset hoặc đánh dấu draft cũ để tránh gửi nhầm người.
@@ -348,6 +356,9 @@ gửi thư. Trước khi phát hành cần server-side idempotency cho send/bulk
 khóa nút FE chỉ giúp ngăn bấm lặp, không xử lý được mọi trường hợp mất kết nối.
 
 ### 5.9. ING-01/02/03 — Tiếp nhận CV
+
+**Đã triển khai:** `/ingestion/upload`, `/ingestion/jobs`, `/ingestion/jobs/[jobId]`;
+API capabilities/upload/jobs/retry, migration 0014, vị trí chỉ định và kiểm tra trùng.
 
 - Upload bằng nút chọn file hoặc kéo/thả; bảng file, trạng thái gửi và kết quả validate.
 - Phân biệt “đã upload” với “đã xử lý/index xong”; chỉ hiện upload progress khi đo
@@ -400,6 +411,9 @@ tiền khi cả baseline và proposal đều có giá 0.
 
 ### 5.12. ADM-01 — Quản lý tài khoản
 
+**Đã triển khai:** `/admin/users` và API admin: xem/tạo/khóa/mở, lọc/phân trang,
+thu hồi phiên. Reset password qua web và đổi quyền/phòng ban tài khoản chưa mở.
+
 Bảng username, role, phòng ban, trạng thái; form tạo username/password/role và
 department bắt buộc với tester. Password mới 12–256 ký tự; không lưu trong state bền/log.
 
@@ -412,6 +426,10 @@ bước mở rộng sau khi chốt contract; không dựng “Quên mật khẩu
 ở trang cá nhân khi chưa có nghiệp vụ tương ứng.
 
 ### 5.13. ADM-02/03 — Phòng ban và vị trí tuyển
+
+**Đã triển khai:** `/admin/departments`, `/admin/postings`, API xem/tạo với số CV,
+lọc/phân trang; gán/đổi/bỏ vị trí tại hồ sơ ứng viên với kiểm tra thay đổi đồng thời.
+Sửa/xóa/hợp nhất phòng ban và đóng/sửa vị trí chưa triển khai.
 
 Danh sách/tạo phòng ban; danh sách/tạo vị trí tuyển thuộc phòng ban; hiển thị số CV
 theo dữ liệu API nếu có. Các thao tác sửa, tắt vị trí, gán lại ứng viên là phần cần

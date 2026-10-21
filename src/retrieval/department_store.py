@@ -57,8 +57,7 @@ def list_job_postings(department_id: str | None = None) -> list[dict]:
     with SessionLocal() as session:
         query = select(JobPosting).where(JobPosting.is_active == True)  # noqa: E712
         if department_id:
-            query = query.where
-            (JobPosting.department_id == department_id)
+            query = query.where(JobPosting.department_id == department_id)
         postings = session.execute(query).scalars().all()
         return [
             {

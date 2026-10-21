@@ -41,6 +41,12 @@ class IngestionJob(Base):
     attempts: Mapped[int] = mapped_column(INT, nullable=False, default=0)
     max_attempts: Mapped[int] = mapped_column(INT, nullable=False, default=3)
     error_message: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(VARCHAR(64), nullable=True)
+    dispatch_error: Mapped[str | None] = mapped_column(VARCHAR(64), nullable=True)
+    file_hash: Mapped[str | None] = mapped_column(CHAR(64), unique=True, nullable=True)
+    posting_id: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("job_postings.posting_id"), nullable=True)
+    uploaded_by: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("app_users.user_id"), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DATETIME, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DATETIME, default=lambda: datetime.now(timezone.utc)
     )
@@ -283,6 +289,8 @@ class ChatFeedback(Base):
 class SentEmail(Base):
     __tablename__ = "sent_emails"
 
+    delivery_id: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("invitation_deliveries.delivery_id"), unique=True)
+
     id: Mapped[int] = mapped_column(INT, primary_key=True, autoincrement=True)
     candidate_id: Mapped[str] = mapped_column(
         CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False
@@ -346,3 +354,54 @@ class LLMUsageLog(Base):
     created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc))
     __table_args__ = (Index("idx_usage_created", "created_at"), Index(
         "idx_usage_operation", "operation_id"), Index("idx_usage_job", "job_id"))
+
+
+class InvitationBatch(Base):
+    __tablename__ = "invitation_batches"
+    batch_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    request_id: Mapped[str] = mapped_column(CHAR(36), unique=True, nullable=False)
+    request_hash: Mapped[str] = mapped_column(VARCHAR(64), nullable=False)
+    created_by: Mapped[str] = mapped_column(CHAR(36), ForeignKey("app_users.user_id"), nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(CHAR(36), ForeignKey("app_users.user_id"))
+    kind: Mapped[str] = mapped_column(VARCHAR(10), nullable=False)
+    name: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    position: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    interview_details: Mapped[str] = mapped_column(TEXT, nullable=False)
+    approval_hash: Mapped[str | None] = mapped_column(VARCHAR(64))
+    dispatch_error: Mapped[str | None] = mapped_column(VARCHAR(64))
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class InvitationDraft(Base):
+    __tablename__ = "invitation_drafts"
+    draft_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    batch_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("invitation_batches.batch_id"), index=True, nullable=False)
+    candidate_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False)
+    recipient_email: Mapped[str | None] = mapped_column(VARCHAR(255))
+    subject: Mapped[str] = mapped_column(VARCHAR(500), default="", nullable=False)
+    body: Mapped[str] = mapped_column(TEXT, default="", nullable=False)
+    revision: Mapped[int] = mapped_column(INT, default=1, nullable=False)
+    error_code: Mapped[str | None] = mapped_column(VARCHAR(64))
+
+
+class InvitationDelivery(Base):
+    __tablename__ = "invitation_deliveries"
+    delivery_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=gen_uuid)
+    batch_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("invitation_batches.batch_id"), index=True, nullable=False)
+    draft_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("invitation_drafts.draft_id"), unique=True, nullable=False)
+    candidate_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("candidates.candidate_id"), nullable=False)
+    recipient_email: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    subject: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
+    body: Mapped[str] = mapped_column(TEXT, nullable=False)
+    status: Mapped[str] = mapped_column(VARCHAR(20), default="queued", nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(INT, default=0, nullable=False)
+    gmail_message_id: Mapped[str | None] = mapped_column(VARCHAR(100))
+    error_code: Mapped[str | None] = mapped_column(VARCHAR(64))
+    created_at: Mapped[datetime] = mapped_column(DATETIME, default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DATETIME)
+    finished_at: Mapped[datetime | None] = mapped_column(DATETIME)
+
+
+class InvitationRecipientGuard(Base):
+    __tablename__ = "invitation_recipient_guards"
+    recipient_email: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)

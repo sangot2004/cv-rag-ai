@@ -2,7 +2,9 @@ import logging
 
 from src.db.models import IngestionJob
 from src.db.session import SessionLocal
-from src.ingestion.pipeline import CVIngestionError, CVRejected, run_ingestion_pipeline
+from src.ingestion.pipeline import CVRejected, PipelineBusy, run_ingestion_pipeline
+from src.ingestion.locking import named_lock
+from src.ingestion.jobs import now
 from src.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -22,58 +24,54 @@ def poll_email_intake() -> dict:
 @celery_app.task(
     name="src.workers.tasks_ingestion.process_cv_job",
     bind=True,
-    max_retries=3,
+    max_retries=None,
+    ignore_result=True,
 )
 def process_cv_job(self, job_id: str) -> None:
-    """Luồng A + B đầy đủ: parse -> classify -> extract -> chunk -> embed -> index.
-
-    Retry logic tự quản (không dùng autoretry_for chung chung nữa) để phân
-    biệt rõ 2 loại lỗi:
-      - CVRejected: lỗi bản chất (không phải CV, file hỏng, thiếu field...)
-        -> set status='rejected' NGAY, không retry vô ích.
-      - Exception khác: lỗi tạm thời (mạng, MinIO, LLM timeout...)
-        -> tăng attempts, retry có backoff, vượt max_attempts thì chuyển 'dlq'.
-    """
-    logger.info("process_cv_job bắt đầu job_id=%s", job_id)
-
-    try:
-        candidate_id = run_ingestion_pipeline(job_id)
-        logger.info("process_cv_job thành công job_id=%s candidate_id=%s", job_id, candidate_id)
-        return
-
-    except CVRejected as e:
-        logger.warning("Job %s bị reject: %s", job_id, e.reason)
+    """Claim each job once; keep safe states even if the broker is unavailable."""
+    with named_lock("job:" + job_id) as locked:
+        if not locked:
+            return
         with SessionLocal() as session:
             job = session.get(IngestionJob, job_id)
-            if job:
-                job.status = "rejected"
-                job.error_message = e.reason
-                session.commit()
-        return  # không retry — lỗi bản chất, retry lại vẫn sai
-
-    except Exception as e:
-        with SessionLocal() as session:
-            job = session.get(IngestionJob, job_id)
-            if job is None:
-                logger.error("job_id=%s không tồn tại, bỏ qua", job_id)
+            if job is None or job.status not in ("pending", "failed"):
                 return
-
-            job.attempts += 1
-
             if job.attempts >= job.max_attempts:
                 job.status = "dlq"
-                job.error_message = f"vuot_max_attempts: {e}"
                 session.commit()
-                logger.error("Job %s vượt max_attempts (%d), chuyển DLQ", job_id, job.max_attempts)
                 return
-
-            job.status = "failed"
-            job.error_message = str(e)
+            job.status, job.started_at = "processing", now()
+            job.attempts += 1
+            job.dispatch_error, job.error_code, job.error_message = None, None, None
             session.commit()
-            attempts_now = job.attempts
-            max_attempts_now = job.max_attempts
-
-        logger.warning(
-            "Job %s lỗi (lần thử %d/%s), sẽ retry: %s", job_id, attempts_now, max_attempts_now, e
-        )
-        raise self.retry(exc=e, countdown=min(60 * (2 ** self.request.retries), 900))
+        try:
+            run_ingestion_pipeline(job_id)
+            return
+        except PipelineBusy:
+            with SessionLocal() as session:
+                job = session.get(IngestionJob, job_id)
+                job.status, job.started_at = "pending", None
+                job.attempts -= 1
+                session.commit()
+            raise self.retry(countdown=15)
+        except CVRejected as exc:
+            prefix = exc.reason.split(":", 1)[0]
+            code = "DUPLICATE_CV" if prefix.startswith("duplicate_content") else "CV_REJECTED"
+            with SessionLocal() as session:
+                job = session.get(IngestionJob, job_id)
+                job.status, job.error_code, job.error_message = "rejected", code, code
+                session.commit()
+            return
+        except Exception as exc:
+            logger.warning("Ingestion failed job_id=%s type=%s", job_id, type(exc).__name__)
+            with SessionLocal() as session:
+                job = session.get(IngestionJob, job_id)
+                # The pipeline can have committed before telemetry failed.
+                if job.status == "indexed":
+                    return
+                job.status = "dlq" if job.attempts >= job.max_attempts else "failed"
+                job.error_code = job.error_message = "INGESTION_FAILED"
+                exhausted, attempts = job.status == "dlq", job.attempts
+                session.commit()
+            if not exhausted:
+                raise self.retry(countdown=min(60 * (2 ** (attempts - 1)), 900))

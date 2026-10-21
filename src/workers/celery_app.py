@@ -18,6 +18,8 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
+    broker_connection_timeout=3,
+    broker_transport_options={"socket_connect_timeout": 3, "socket_timeout": 3},
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
@@ -30,6 +32,7 @@ celery_app.conf.update(
 
 
 celery_app.conf.beat_schedule = {
+    "invitation-outbox-every-30-seconds": {"task": "src.workers.tasks_notification.drain_invitation_outbox", "schedule": 30.0},
     "pool-gmail-intake-every-2-minutes": {
         "task": "src.workers.tasks_ingestion.poll_email_intake",
         "schedule": crontab(minute="*/5")

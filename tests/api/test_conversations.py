@@ -44,7 +44,51 @@ def test_input_and_limits(api):
     assert client.post("/api/conversations", headers=headers, json={"owner_user_id": api.users["admin"]}).status_code == 422
     assert client.get("/api/conversations?limit=51", headers=headers).status_code == 422
     assert client.get("/api/conversations?limit=0", headers=headers).status_code == 422
-    assert client.get("/api/conversations/not-a-uuid/messages", headers=headers).status_code == 422
+    for identifier in ("bad.id", "bad%20id", "a" * 37):
+        assert client.get(f"/api/conversations/{identifier}/messages", headers=headers).status_code == 422
+    assert client.get("/api/conversations/not-a-uuid/messages", headers=headers).status_code == 404
+
+
+def test_legacy_id_list_history_resume_feedback_and_delete(api):
+    """Legacy ownership/keys are preserved across every conversation endpoint."""
+    thread = "test-cart"
+    with api.db() as db:
+        db.add(ChatConversation(thread_id=thread, owner_user_id=api.users["admin"]))
+        db.commit()
+    headers = api.headers("admin")
+    client = api.client
+    assert client.get("/api/conversations", headers=headers).json()["items"][0]["thread_id"] == thread
+    empty = client.get(f"/api/conversations/{thread}/messages", headers=headers)
+    assert empty.status_code == 200
+    assert empty.json()["thread_id"] == thread
+
+    for name in ("alice", "bobby", "carol"):
+        other = api.headers(name)
+        assert client.get("/api/conversations", headers=other).json()["items"] == []
+        for method, suffix, body in [
+            ("GET", "/messages", None), ("DELETE", "", None),
+            ("POST", "/messages", {"question": "hello"}),
+            ("POST", "/resume", {"confirmation_id": "not-owned", "confirmed": False}),
+            ("POST", "/feedback", {"message_id": "not-owned", "feedback": "up"}),
+        ]:
+            kwargs = {"headers": other}
+            if body is not None:
+                kwargs["json"] = body
+            assert client.request(method, f"/api/conversations/{thread}{suffix}", **kwargs).status_code == 404
+
+    answer = client.post(f"/api/conversations/{thread}/messages", headers=headers, json={"question": "hello"})
+    assert answer.status_code == 200
+    assert answer.json()["thread_id"] == thread
+    message_id = answer.json()["message"]["id"]
+    assert client.post(f"/api/conversations/{thread}/feedback", headers=headers,
+                       json={"message_id": message_id, "feedback": "up"}).status_code == 201
+    pending = client.post(f"/api/conversations/{thread}/messages", headers=headers, json={"question": "rank"})
+    confirmation_id = pending.json()["pending_confirmations"][0]["confirmation_id"]
+    resumed = client.post(f"/api/conversations/{thread}/resume", headers=headers,
+                          json={"confirmation_id": confirmation_id, "confirmed": False})
+    assert resumed.status_code == 200
+    assert client.delete(f"/api/conversations/{thread}", headers=headers).status_code == 204
+    assert client.get(f"/api/conversations/{thread}/messages", headers=headers).status_code == 404
 
 
 def test_cleanup_failure_retry_and_feedback_removed(api, monkeypatch):

@@ -25,7 +25,20 @@ class RequestIdMiddleware:
             await send(message)
 
         try:
-            await self.app(scope, receive, send_with_id)
+            upload = scope.get("path") == "/api/ingestion/uploads"
+            received = 0
+
+            async def bounded_receive():
+                nonlocal received
+                message = await receive()
+                if upload and message["type"] == "http.request":
+                    received += len(message.get("body", b""))
+                    if received > 50 * 1024 * 1024 + 65536:
+                        from src.management.errors import ManagementError
+                        raise ManagementError("FILE_TOO_LARGE", "File vượt quá dung lượng cho phép.", 413)
+                return message
+
+            await self.app(scope, bounded_receive, send_with_id)
         except Exception as exc:
             if started:
                 raise

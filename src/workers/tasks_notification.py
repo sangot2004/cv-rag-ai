@@ -35,3 +35,15 @@ def send_bulk_emails(email_batch: list[dict], batch_id: str) -> dict:
         batch_id, results["success"], results["failed"], len(email_batch),
     )
     return results
+
+
+@celery_app.task(name="src.workers.tasks_notification.process_invitation_batch", ignore_result=True)
+def process_invitation_batch(batch_id: str):
+    from src.notification.delivery_worker import process_batch
+    return process_batch(batch_id)
+
+
+@celery_app.task(name="src.workers.tasks_notification.drain_invitation_outbox", ignore_result=True)
+def drain_invitation_outbox():
+    from src.notification.delivery_worker import drain_outbox
+    return drain_outbox()

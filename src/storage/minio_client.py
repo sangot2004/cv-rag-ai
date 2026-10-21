@@ -12,15 +12,17 @@ settings = get_settings()
 
 
 class MinioStorage:
-    def __init__(self):
+    def __init__(self, *, ensure_bucket: bool = True, http_client=None):
         self.client = Minio(
             settings.MINIO_ENDPOINT,
             access_key=settings.MINIO_ACCESS_KEY,
             secret_key=settings.MINIO_SECRET_KEY,
             secure=settings.MINIO_SECURE,
+            http_client=http_client,
         )
         self.bucket = settings.MINIO_BUCKET
-        self._ensure_bucket()
+        if ensure_bucket:
+            self._ensure_bucket()
 
     def _ensure_bucket(self) -> None:
         try:
