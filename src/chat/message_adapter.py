@@ -21,8 +21,21 @@ def display_text(content) -> str:
 
 def visible_messages(thread_id: str, messages) -> list[dict]:
     visible = []
+    artifacts = []
+    tool_names = {}
     for index, msg in enumerate(messages):
         kind = getattr(msg, "type", None)
+        if kind == "human":
+            artifacts = []
+            tool_names = {}
+        if kind == "ai":
+            for call in getattr(msg, "tool_calls", []) or []:
+                tool_names[call.get("id")] = call.get("name")
+        if kind == "tool":
+            name = tool_names.pop(getattr(msg, "tool_call_id", None), None)
+            payload = getattr(msg, "artifact", None)
+            if name and payload is not None:
+                artifacts.append((name, payload))
         if kind not in ("human", "ai") or (kind == "ai" and getattr(msg, "tool_calls", None)):
             continue
         text = display_text(msg.content)
@@ -32,7 +45,14 @@ def visible_messages(thread_id: str, messages) -> list[dict]:
         if not identifier:
             material = json.dumps([thread_id, index, kind, text], ensure_ascii=False)
             identifier = "legacy-" + hashlib.sha256(material.encode()).hexdigest()
-        visible.append({"id": str(identifier), "role": "user" if kind == "human" else "assistant", "content": text})
+        item = {"id": str(identifier), "role": "user" if kind == "human" else "assistant", "content": text}
+        if kind == "ai" and artifacts:
+            from src.chat.candidate_results import project_artifacts
+            results = project_artifacts(artifacts)
+            if results:
+                item["candidate_results"] = results
+            artifacts = []
+        visible.append(item)
     return visible
 
 

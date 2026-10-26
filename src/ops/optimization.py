@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.db.models import Base
 from src.auth.service import admin_only
 from src.llm.prompt_store import format_prompt
+from src.ops.locking import serialized
 
 
 class OptimizationConfig(Base):
@@ -96,6 +97,7 @@ def propose(config):
 
 
 @admin_only
+@serialized
 def approve(identifier):
     from src.db.session import SessionLocal
 
@@ -124,6 +126,7 @@ def approve(identifier):
 
 
 @admin_only
+@serialized
 def rollback(identifier=None):
     from src.db.session import SessionLocal
 

@@ -1,8 +1,9 @@
 # API ứng viên — F2 bước 1
 
 Danh sách/chi tiết đọc MySQL; endpoint ảnh đọc MinIO. Không gọi model, không cần migration.
-Cần `Authorization: Bearer <token>` của admin. Tester nhận `403 FORBIDDEN` kể cả
-khi ứng viên thuộc phòng ban của tester; việc tra cứu qua chat vẫn theo quyền hiện có.
+Cần `Authorization: Bearer <token>` hợp lệ. Admin xem toàn bộ; tester chỉ xem
+ứng viên có job posting thuộc phòng ban của tài khoản. API tự áp dụng scope trước
+khi đếm, lọc và phân trang. Tester không thấy hồ sơ chưa gắn posting.
 Session được kiểm tra lại trên mỗi request. Response thành công có `Cache-Control: private, no-store`.
 
 ## Danh sách
@@ -94,7 +95,7 @@ Ngày tháng của kinh nghiệm/chứng chỉ/dự án có dạng `YYYY-MM-DD`,
 Không trả hash, object key, thông tin ingestion job hay URL MinIO.
 ## Ảnh chân dung
 
-`GET /api/candidates/{candidate_id}/photo` — yêu cầu token admin như danh sách/chi tiết.
+`GET /api/candidates/{candidate_id}/photo` — kiểm tra phạm vi phòng ban như danh sách/chi tiết trước khi đọc MinIO.
 
 - Danh sách và chi tiết có thêm `has_photo: boolean`, dựa trên `photo_object_key` đã lưu.
   Không gọi MinIO để kiểm tra từng ảnh khi tải danh sách. Object key và URL MinIO không được trả cho trình duyệt.
@@ -115,7 +116,7 @@ Không trả hash, object key, thông tin ingestion job hay URL MinIO.
 | HTTP | Code | Trường hợp |
 | --- | --- | --- |
 | 401 | AUTHENTICATION_REQUIRED | Thiếu token, hết phiên hoặc tài khoản bị khóa |
-| 403 | FORBIDDEN | Đăng nhập tester |
+| 403 | FORBIDDEN | Tester yêu cầu lọc phòng ban khác hoặc thao tác quản trị |
 | 404 | CANDIDATE_NOT_FOUND | Admin yêu cầu UUID không tồn tại |
 | 404 | CANDIDATE_PHOTO_NOT_FOUND | Không có ảnh chân dung sử dụng được |
 | 422 | VALIDATION_ERROR | Query/path không hợp lệ |
@@ -134,7 +135,9 @@ Giữ error envelope và `X-Request-ID` chung. Không trả SQL/DSN hoặc raw e
    có `posting`; đối chiếu `total` và các dòng trả về. `min_years_experience=0` phải hoạt động.
 6. Thử `page_size=101`: 422. Thử UUID ứng viên không tồn tại: 404.
 7. Nếu item có `has_photo=true`, gọi GET `/{candidate_id}/photo`: mong đợi ảnh 200 nếu object còn tồn tại. Hồ sơ không có ảnh: 404.
-8. Authorize lại bằng token tester, gọi danh sách/chi tiết/ảnh với đầu vào hợp lệ: 403.
+8. Authorize lại bằng token tester: danh sách chỉ trả CV của phòng ban được cấp;
+   chi tiết/ảnh đúng phòng ban trả 200 nếu tồn tại. ID ngoài phòng ban hoặc CV chưa
+   gắn posting trả 404; đổi department_id sang phòng ban khác trả 403.
 
 Test tự động dùng database SQLite và dữ liệu giả:
 
@@ -145,3 +148,11 @@ LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false OPS_ENABLED=false \
 
 Bao phủ phân trang, trùng kỹ năng/alias, kết hợp bộ lọc, tìm kiếm literal, sort,
 zero/null, schema chi tiết, quyền admin/tester, input sai và lỗi database được che thông tin.
+
+## Quyền xem trên frontend
+
+Tester có menu Ứng viên, xem hồ sơ và phóng to chân dung. Các nút gán vị trí,
+phỏng vấn, email và menu quản trị chỉ hiện cho admin. Endpoint ghi vẫn chặn tester.
+Khi admin đổi posting của CV, các request tiếp theo áp dụng phòng ban mới.
+Cache truy vấn hồ sơ gắn user, role và department để tránh dùng dữ liệu của scope cũ.
+Không cần migration cho thay đổi quyền xem này.

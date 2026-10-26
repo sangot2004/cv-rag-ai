@@ -37,13 +37,14 @@ API hiện hỗ trợ đăng nhập/đăng xuất, lấy identity, tạo/liệt 
 gửi câu hỏi, resume theo confirmation ID và feedback theo message ID.
 
 API đọc danh sách/chi tiết ứng viên đã có tại `GET /api/candidates` và
-`GET /api/candidates/{candidate_id}`, dành cho admin; xem [contract ứng viên](../api/candidates.md).
-Đã triển khai CAND-01 `/candidates` và CAND-02 `/candidates/[candidateId]` cho admin: tìm kiếm, lọc, phân trang và hồ sơ chi tiết. Bộ lọc/số trang lưu trong URL; lọc phòng ban/vị trí tuyển dụng bằng liên kết trên hồ sơ. Ảnh chân dung đã hiển thị dưới email trong danh sách qua API/BFF có xác thực. INT-01 đã triển khai API/FE câu hỏi phỏng vấn; xem [contract](../api/interviews.md). Endpoint PDF và các màn đánh giá/Top-K vẫn cần triển khai.
+`GET /api/candidates/{candidate_id}`, dành cho admin và tester theo phòng ban; xem [contract ứng viên](../api/candidates.md).
+Đã triển khai CAND-01 `/candidates` và CAND-02 `/candidates/[candidateId]` cho admin và tester theo phòng ban: tìm kiếm, lọc, phân trang và hồ sơ chi tiết. Bộ lọc/số trang lưu trong URL; lọc phòng ban/vị trí tuyển dụng bằng liên kết trên hồ sơ. Ảnh chân dung đã hiển thị dưới email trong danh sách qua API/BFF có xác thực. INT-01 đã triển khai API/FE câu hỏi phỏng vấn; xem [contract](../api/interviews.md). Endpoint PDF và các màn đánh giá/Top-K vẫn cần triển khai.
 
 Email, phỏng vấn, quản trị và tiếp nhận CV đã có HTTP API/FE. Quản trị gồm
 xem/tạo phòng ban và vị trí, xem/tạo/khóa/mở tài khoản; tiếp nhận gồm upload,
 theo dõi/khôi phục job và gán vị trí cho CV hiện có. Xem [contract và kiểm thử](../api/administration-ingestion.md).
-Đánh giá, Top-K, Ops và dashboard tổng quan còn theo kế hoạch phía dưới.
+OPS-01 đã triển khai tại `/ops` với API giám sát usage; xem [contract Ops](../api/ops-monitoring.md).
+Đánh giá, Top-K, optimization/experiment và dashboard tổng quan còn theo kế hoạch phía dưới.
 
 ### 1.2. Cách chia phạm vi
 

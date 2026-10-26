@@ -115,6 +115,8 @@ def test_approval_rejects_stale_baseline_and_rollback(monkeypatch):
     OptimizationPointer.__table__.create(engine)
     factory = sessionmaker(bind=engine)
     monkeypatch.setitem(sys.modules, 'src.db.session', types.SimpleNamespace(SessionLocal=factory))
+    from src.ingestion import locking
+    monkeypatch.setattr(locking.database, 'SessionLocal', factory)
     default_config = validate_config({})
     good_config = validate_config({'cache_enabled': True})
     with factory() as session:

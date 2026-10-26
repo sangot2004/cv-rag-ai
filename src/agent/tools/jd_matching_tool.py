@@ -17,8 +17,8 @@ def prepare_jd_criteria(jd_text: str) -> dict:
     return extract_jd_data(jd_text).model_dump(mode="json")
 
 
-@tool
-def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> str:
+@tool(response_format="content_and_artifact")
+def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> tuple[str, dict | None]:
     """Cho 1 Job Description (JD) dạng text, tìm ra TOP K ứng viên phù hợp
     nhất trong toàn bộ hệ thống, có chấm điểm chi tiết theo rubric. Dùng khi
     câu hỏi đưa vào 1 JD và hỏi "ai phù hợp nhất", "tìm ứng viên cho vị trí
@@ -46,7 +46,7 @@ def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> str:
 
     if not confirmation.get("confirmed", False):
         logger.info("find_top_candidates_for_jd: HR huỷ, không chạy ranking")
-        return "HR đã huỷ yêu cầu tìm kiếm này, không có gì được xử lý thêm."
+        return "HR đã huỷ yêu cầu tìm kiếm này, không có gì được xử lý thêm.", None
 
     edited = confirmation.get("edited_criteria")
     if edited:
@@ -59,11 +59,11 @@ def find_top_candidates_for_jd(jd_text: str, top_k: int = 5) -> str:
     results = rank_candidates_for_jd(jd, top_k=top_k)
 
     if not results:
-        return f"Không tìm thấy ứng viên nào phù hợp với JD vị trí '{jd.position_title}'."
+        return f"Không tìm thấy ứng viên nào phù hợp với JD vị trí '{jd.position_title}'.", {"kind": "candidate_ranking", "title": jd.position_title, "items": []}
 
     lines = [f"Top {len(results)} ứng viên phù hợp nhất với vị trí '{jd.position_title}':"]
     for i, r in enumerate(results, 1):
         lines.append(
             f"{i}. candidate_id={r['candidate_id']} - điểm: {r['overall_score']:.1f}/5 - {r['summary']}"
         )
-    return "\n".join(lines)
+    return "\n".join(lines), {"kind": "candidate_ranking", "title": jd.position_title, "items": results}

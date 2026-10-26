@@ -4,6 +4,7 @@ import time
 from sqlalchemy import select
 from src.ops.optimization import OptimizationConfig, OptimizationPointer
 from src.auth.service import admin_only
+from src.ops.locking import serialized
 
 
 def flatten(value, prefix=""):
@@ -88,6 +89,7 @@ def score(actual, expected):
 
 
 @admin_only
+@serialized
 def run_experiment(identifier, dataset_name):
     from langsmith import Client
 

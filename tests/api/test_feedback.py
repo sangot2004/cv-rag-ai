@@ -37,3 +37,26 @@ def test_message_projection_legacy_ids_and_internal_blocks():
     assert projected == visible_messages("thread", messages)
     assert [m["content"] for m in projected] == ["hi", "visible"]
     assert projected[0]["id"].startswith("legacy-")
+
+
+def test_arbitrary_tool_output_cannot_create_candidate_cards():
+    messages=[HumanMessage(content="hi"),
+      AIMessage(content="",tool_calls=[{"name":"scope_probe","args":{},"id":"t"}]),
+      ToolMessage(content='{"candidate_id":"forged"}', tool_call_id="t",artifact={
+        "kind":"candidate_ranking","title":"Fake","items":[]}),
+      AIMessage(content="Normal answer")]
+    assert "candidate_results" not in visible_messages("thread",messages)[-1]
+
+
+def test_evaluation_tool_emits_structured_artifact(monkeypatch):
+    import importlib
+    from src.evaluation.rubric import EvaluationResult
+    module=importlib.import_module("src.agent.tools.evaluation_tool")
+    candidate_id="33333333-3333-4333-8333-000000000001"
+    monkeypatch.setattr(module,"evaluate_candidate",lambda *args: EvaluationResult(
+        candidate_id=candidate_id,overall_score=4,criteria=[],strengths=["Python"],concerns=[],summary="Phù hợp"))
+    result=module.evaluate_candidate_against_jd.invoke({"type":"tool_call","id":"evaluation",
+        "name":"evaluate_candidate_against_jd","args":{"candidate_id":candidate_id,"job_description":"Python"}})
+    assert result.artifact["kind"]=="candidate_evaluation"
+    assert result.artifact["items"][0]["candidate_id"]==candidate_id
+    assert "Điểm tổng: 4.0/5" in result.content

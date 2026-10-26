@@ -14,6 +14,7 @@ celery_app = Celery(
         "src.workers.tasks_ingestion",
         "src.workers.tasks_retrieval",
         "src.workers.tasks_notification",
+        "src.workers.tasks_ops",
     ],
 )
 

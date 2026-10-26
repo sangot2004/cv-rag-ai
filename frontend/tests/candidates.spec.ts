@@ -19,6 +19,7 @@ test("admin filters, reads full profile and returns with URL filters preserved",
   await page.screenshot({path: "test-results/candidates-desktop.png", fullPage: true});
   await page.getByLabel("Tìm tên hoặc email").fill("Ada");
   await page.getByLabel("Kỹ năng", {exact: true}).fill("Python, SQL");
+  await page.getByText("Bộ lọc nâng cao", {exact:false}).click();
   await page.getByLabel("Kinh nghiệm tối thiểu (năm)").fill("0");
   await page.getByRole("button", {name: "Áp dụng bộ lọc"}).click();
   await expect(page.getByRole("heading", {name: "1 ứng viên", exact: true})).toBeVisible();
@@ -61,6 +62,7 @@ test("pagination, group filters and browser back keep list state", async ({page,
 
 test("empty, validation, unavailable, malformed and missing profiles have recovery", async ({page, request}) => {
   await login(page); await page.goto("/candidates");
+  await page.getByText("Bộ lọc nâng cao", {exact:false}).click();
   await page.getByLabel("Kinh nghiệm tối thiểu (năm)").fill("5");
   await page.getByLabel("Kinh nghiệm tối đa (năm)").fill("0");
   await page.getByRole("button", {name: "Áp dụng bộ lọc"}).click();
@@ -78,15 +80,21 @@ test("empty, validation, unavailable, malformed and missing profiles have recove
   await page.reload(); await expect(page.locator("#candidate-main [role=alert]")).toContainText("Dữ liệu phản hồi");
 });
 
-test("tester cannot open candidate pages or bypass BFF; missing sessions redirect", async ({page}) => {
+test("tester can browse own department, but has no admin actions", async ({page}) => {
   await page.goto("/candidates"); await expect(page).toHaveURL(/\/login$/);
   await login(page, "tester_a");
-  await expect(page.getByRole("link", {name: "Ứng viên", exact: true})).toHaveCount(0);
-  for (const path of ["/candidates", `/candidates/${ada}`]) {
-    await page.goto(path); await expect(page.getByRole("heading", {name: "Bạn chưa có quyền truy cập"})).toBeVisible();
-  }
-  expect((await page.request.get("/api/backend/candidates")).status()).toBe(403);
-  expect((await page.request.get(`/api/backend/candidates/${ada}`)).status()).toBe(403);
+  await page.getByRole("link", {name: "Ứng viên", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "22 ứng viên", exact: true})).toBeVisible();
+  await page.getByRole("link", {name: "Ada Nguyen", exact: false}).click();
+  await expect(page.getByRole("heading", {name: "Ada Nguyen", exact: true})).toBeVisible();
+  await expect(page.getByRole("link", {name: "Soạn thư mời", exact: true})).toHaveCount(0);
+  await expect(page.getByRole("link", {name: "System Ops", exact: true})).toHaveCount(0);
+  await expect(page.getByRole("link", {name: "Tạo câu hỏi phỏng vấn", exact: true})).toHaveCount(0);
+  await expect(page.getByLabel("Gán vị trí tuyển dụng", {exact: true})).toHaveCount(0);
+  await page.goto("/candidates/33333333-3333-4333-8333-000000000023");
+  await expect(page.getByRole("heading", {name: "Không tìm thấy ứng viên"})).toBeVisible();
+  expect((await page.request.get("/api/backend/candidates")).status()).toBe(200);
+  expect((await page.request.post(`/api/backend/candidates/${ada}/posting`, {headers: {origin}, data: {posting_id:null,expected_posting_id:null}})).status()).toBe(403);
   expect((await page.request.post("/api/backend/candidates", {headers: {origin}, data: {}})).status()).toBe(404);
   expect((await page.request.delete(`/api/backend/candidates/${ada}`, {headers: {origin}})).status()).toBe(404);
 });
@@ -137,11 +145,11 @@ test("portrait is authenticated, appears below email and stays absent when unava
   await expect(page.locator("#candidate-main [role=alert]")).toHaveCount(0);
 });
 
-test("portrait BFF rejects anonymous/tester access and non-image responses", async ({page, request}) => {
+test("portrait BFF allows scoped tester reads and rejects anonymous or non-image responses", async ({page, request}) => {
   const path = `/api/backend/candidates/${ada}/photo`;
   expect((await page.request.get(path)).status()).toBe(401);
   await login(page, "tester_a");
-  expect((await page.request.get(path)).status()).toBe(403);
+  expect((await page.request.get(path)).status()).toBe(200);
   expect((await page.request.post(path, {headers: {origin}, data: {}})).status()).toBe(404);
   await page.getByRole("button", {name: "Đăng xuất"}).first().click();
   await expect(page).toHaveURL(/\/login/);
@@ -199,4 +207,29 @@ test("profile keeps initial avatar for missing portraits and list portraits can 
   await page.goto("/candidates");
   await page.getByRole("button", {name: "Phóng to ảnh chân dung Ada Nguyen", exact: true}).click();
   await expect(page.getByRole("dialog", {name: "Ảnh chân dung Ada Nguyen", exact: true})).toBeVisible();
+});
+
+test("refreshed workspace collapses navigation, expands skills and respects reduced motion", async ({page}) => {
+  await page.setViewportSize({width:1440,height:1000});
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.route("**/api/backend/candidates?*",async route=>{
+    const response=await route.fetch();const body=await response.json();
+    if(body.items?.[0])body.items[0].skills=["Python","SQL","Docker","Git","Airflow","Spark"];
+    await route.fulfill({response,json:body});
+  });
+  await login(page);await page.goto("/candidates");
+  await page.getByRole("button",{name:"+2 kỹ năng",exact:true}).click();
+  await expect(page.getByText("Airflow",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Thu gọn",exact:true}).click();
+  await expect(page.getByText("Airflow",{exact:true})).toHaveCount(0);
+  await page.getByRole("button",{name:"Thu gọn thanh điều hướng",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Mở rộng thanh điều hướng",exact:true})).toHaveAttribute("aria-expanded","false");
+  await expect(page.locator(".desktop-sidebar").getByRole("link",{name:"Ứng viên",exact:true})).toBeVisible();
+  expect(await page.locator(".desktop-sidebar").evaluate(el=>el.getBoundingClientRect().width)).toBe(80);
+  expect(await page.locator(".workspace").evaluate(el=>getComputedStyle(el).transitionDuration)).toBe("0s");
+  await page.screenshot({path:"test-results/candidates-collapsed.png"});
+  await page.getByRole("button",{name:"Mở rộng thanh điều hướng",exact:true}).click();
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  await page.screenshot({path:"test-results/candidates-refresh-mobile.png"});
 });

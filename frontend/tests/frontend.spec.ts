@@ -240,3 +240,55 @@ test("mobile layout, accessible drawer and JD actions", async ({page, request}) 
   await page.getByRole("button", {name: "Hủy yêu cầu"}).click();
   await expect(page.getByLabel("Câu hỏi của bạn")).toBeVisible();
 });
+
+test("Top-K cards persist, expand criteria and open scoped profiles on mobile", async ({page,request})=>{
+  await page.setViewportSize({width:390,height:844});
+  await request.post(`${backend}/control/mode`,{data:{mode:"jd"}});
+  await login(page);await send(page,"Tìm ứng viên phù hợp JD Data Engineer");
+  await page.getByRole("button",{name:"Xác nhận và tìm ứng viên",exact:true}).click();
+  const group=page.getByRole("region",{name:"Kết quả Top-K",exact:true});
+  await expect(group.getByRole("link",{name:"Ada Nguyen",exact:true})).toBeVisible();
+  await group.getByText("Điểm và lý do theo từng tiêu chí",{exact:true}).click();
+  await expect(group.getByText("Có dự án Python và SQL trong CV.",{exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  await page.screenshot({path:"test-results/chat-ranking-mobile.png"});
+  await page.reload();await expect(group.getByRole("link",{name:"Ada Nguyen",exact:true})).toBeVisible();
+  await page.setViewportSize({width:1440,height:1000});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await page.screenshot({path:"test-results/chat-ranking-desktop.png",animations:"disabled"});
+  await group.getByRole("link",{name:"Xem hồ sơ",exact:false}).click();
+  await expect(page.getByRole("heading",{name:"Ada Nguyen",exact:true})).toBeVisible();
+  await expect(page.getByRole("link",{name:"Soạn thư mời",exact:true})).toHaveCount(0);
+});
+
+test("assistant Markdown renders safely and stays within mobile chat after reload", async ({page, request}) => {
+  await page.setViewportSize({width:390, height:844});
+  await request.post(`${backend}/control/mode`, {data:{mode:"markdown"}});
+  await login(page);
+  const question = "**Tìm top 3** ứng viên NLP";
+  await send(page, question);
+  const answer = page.locator(".message.assistant .assistant-markdown");
+  await expect(answer.locator("strong").first()).toHaveText("Top 3 ứng viên");
+  await expect(answer.getByRole("heading", {name:"1. Nguyễn Văn Quang Trung", exact:true})).toBeVisible();
+  await expect(answer.locator("ul ul li")).toHaveText(["Transformers", "LangGraph"]);
+  await expect(answer.locator("ol > li")).toHaveText(["Đọc hồ sơ", "Đối chiếu yêu cầu"]);
+  await expect(answer.getByRole("columnheader", {name:"Ứng viên", exact:true})).toBeVisible();
+  await expect(answer.locator("hr")).toHaveCount(1);
+  await expect(answer.locator("pre code")).toContainText('print("NLP")');
+  await expect(answer.locator("blockquote")).toContainText("Cần kiểm tra hồ sơ gốc.");
+  const source = answer.getByRole("link", {name:"Nguồn tham khảo"});
+  await expect(source).toHaveAttribute("href", "https://example.com/cv");
+  await expect(source).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(answer.locator("script, img, iframe")).toHaveCount(0);
+  await expect(answer.getByRole("link", {name:"Liên kết không an toàn"})).toHaveCount(0);
+  await expect(page.locator(".message.user .message-text")).toHaveText(question);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expect(await answer.locator(".markdown-table-scroll").evaluate(el=>el.scrollWidth > el.clientWidth)).toBeTruthy();
+  await page.screenshot({path:"test-results/chat-markdown-mobile.png", animations:"disabled"});
+  await page.reload();
+  await expect(answer.locator("strong").first()).toHaveText("Top 3 ứng viên");
+  await page.setViewportSize({width:1440, height:1000});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({path:"test-results/chat-markdown-desktop.png", animations:"disabled"});
+});

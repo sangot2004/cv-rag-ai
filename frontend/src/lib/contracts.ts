@@ -31,9 +31,17 @@ export const conversationSchema = z.object({
   thread_id: threadIdSchema, title: z.string(), created_at: z.string(), updated_at: z.string(),
 });
 export const conversationListSchema = z.object({items: z.array(conversationSchema), limit: z.number()});
+export const candidateResultsSchema = z.array(z.object({
+  kind: z.enum(["candidate_ranking", "candidate_evaluation"]), title: z.string(), unavailable: z.boolean(),
+  items: z.array(z.object({candidate_id: z.string().uuid(), full_name: z.string(), applied_position: z.string().nullable(), rank: z.number().int().positive(),
+    overall_score: z.number().min(1).max(5), summary: z.string(), strengths: z.array(z.string()), concerns: z.array(z.string()),
+    criteria: z.array(z.object({criterion:z.string(),score:z.number().min(1).max(5),justification:z.string()})),
+  })),
+}));
+export type CandidateResults = z.infer<typeof candidateResultsSchema>;
 export const historySchema = z.object({
   thread_id: threadIdSchema,
-  messages: z.array(z.object({id: z.string(), role: z.enum(["user", "assistant"]), content: z.string()})),
+  messages: z.array(z.object({id: z.string(), role: z.enum(["user", "assistant"]), content: z.string(), candidate_results: candidateResultsSchema.optional()})),
   pending_confirmations: z.array(z.object({confirmation_id: z.string(), type: z.literal("confirm_jd_criteria"), criteria: criteriaSchema.extend({
     // Read the backend's Criteria contract; tighter edit validation is applied
     // only when the user submits the form (CriteriaEdits).

@@ -241,3 +241,8 @@ npm run test:e2e -- tests/management-ingestion.spec.ts
 Test đi qua BFF thật với backend giả lập; kiểm tra quyền, session bị thu hồi,
 upload nhiều file/lỗi riêng, khôi phục queue, gán vị trí và mobile. Các test backend
 dùng PDF trong bộ nhớ, database tạm và model/storage giả lập; không gọi AI thật.
+
+## System Ops
+
+Admin mở `/ops` để xem usage, chi phí, biểu đồ, cảnh báo và log. Không cần migration mới.
+Xem [contract và hướng dẫn test](../docs/api/ops-monitoring.md). Optimization/experiment có tại `/ops/optimization`; xem [hướng dẫn migration/worker](../docs/api/ops-optimization.md).

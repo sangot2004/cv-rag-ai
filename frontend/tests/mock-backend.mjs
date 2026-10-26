@@ -11,6 +11,20 @@ function resetAdmin() {
 }
 resetAdmin();
 const criteria = {position_title: "Data Engineer", required_skills: ["Python", "SQL"], min_years_experience: 2, preferred_education: null, top_k: 3};
+const markdownAnswer = [
+  "Dưới đây là **Top 3 ứng viên** phù hợp.",
+  "---",
+  "### 1. **Nguyễn Văn Quang Trung**",
+  "* **Vị trí ứng tuyển:** AI Engineer\n* **Kỹ năng NLP & LLM:**\n  * Transformers\n  * LangGraph",
+  "1. Đọc hồ sơ\n2. Đối chiếu yêu cầu",
+  "| Ứng viên | Vị trí | Kỹ năng | Nhận xét |\n| --- | --- | --- | --- |\n| Trung | AI Engineer | Python | Có kinh nghiệm NLP |",
+  "Dùng `Python` để xử lý dữ liệu.",
+  '```python\nprint("NLP")\n# ' + "very_long_code_line_".repeat(12) + '\n```',
+  "> Cần kiểm tra hồ sơ gốc.",
+  "[Nguồn tham khảo](https://example.com/cv) và [Liên kết không an toàn](javascript:alert%281%29)",
+  '<script>alert("unsafe")</script>\n<img src="x" onerror="alert(1)">',
+  "![Ảnh từ model](https://example.com/tracker.png)",
+].join("\n\n");
 const server = http.createServer(async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -73,6 +87,15 @@ const server = http.createServer(async (req, res) => {
     sessions.delete(token); return json(204);
   }
   const paginate = rows => {const page = Number(url.searchParams.get("page") || 1), page_size = Number(url.searchParams.get("page_size") || 20); return {items: rows.slice((page-1)*page_size,page*page_size), total: rows.length, page, page_size, has_next: page*page_size < rows.length};};
+  if (url.pathname === "/api/ops/dashboard") {
+    if (user.role !== "admin") return error(403, "FORBIDDEN");
+    if (mode === "ops-down") return error(503, "DEPENDENCY_UNAVAILABLE");
+    const empty = mode === "ops-empty", unknown = url.searchParams.get("model") === "unknown";
+    const metrics = {calls: empty ? 0 : 27, input_tokens: empty ? 0 : 2700, output_tokens: empty ? 0 : 540, estimated_cost_usd: empty || unknown ? null : 0, priced_calls: empty || unknown ? 0 : 27, missing_usage_calls: unknown ? 27 : 0, error_calls: empty ? 0 : 1, failover_calls: 0};
+    const page = Number(url.searchParams.get("page") || 1), total = empty ? 0 : url.searchParams.get("alerts_only") === "true" ? 1 : 27;
+    const item = {operation_id: "operation-fixture", module_name: "extract", model_name: unknown ? "unknown" : "free", status: "success", input_tokens: unknown ? null : 100, output_tokens: unknown ? null : 20, cached_tokens: 10, reasoning_tokens: null, latency_ms: 250, estimated_cost_usd: unknown ? null : 0, pricing_version: "free-tier", attempt: 1, created_at: new Date().toISOString()};
+    return json(200, {start: new Date(Date.now()-7*86400000).toISOString(), end: new Date().toISOString(), summary: {...metrics, median_ms: empty ? null : 250, p95_ms: empty ? null : 500}, daily: empty ? [] : [{...metrics, day: new Date().toISOString().slice(0,10)}], breakdown: empty ? [] : [{...metrics, module_name: "extract", model_name: item.model_name}], options: {modules: ["extract"], models: ["free", "unknown"], statuses: ["success", "error"]}, dlq_count: 2, alerts: {count: empty ? 0 : 1, latency_ms: 15000, tokens: 20000}, logs: {items: Array.from({length: Math.max(0,Math.min(25,total-(page-1)*25))}, (_,i) => ({...item,id:(page-1)*25+i+1})), total, page, page_size: 25, has_next: page*25<total}});
+  }
   if (url.pathname.startsWith("/api/admin/")) {
     if (user.role !== "admin") return error(403, "FORBIDDEN");
     if (mode === "admin-down") return error(503, "DEPENDENCY_UNAVAILABLE");
@@ -191,14 +214,19 @@ const server = http.createServer(async (req, res) => {
     return row ? json(200, row) : error(404, "INVITATION_NOT_FOUND");
   }
   if (url.pathname.startsWith("/api/candidates")) {
-    if (user.role !== "admin") return error(403, "FORBIDDEN");
+    if (user.role !== "admin" && (req.method !== "GET" || url.pathname.includes("interview-questions"))) return error(403, "FORBIDDEN");
     if (mode === "candidate-down") return error(503, "DEPENDENCY_UNAVAILABLE");
     if (mode === "candidate-bad") return json(200, {items: [{candidate_id: "bad"}]});
     const department = {department_id: "11111111-1111-4111-8111-111111111111", department_name: "Engineering"};
     const posting = {posting_id: "22222222-2222-4222-8222-222222222222", position_title: "Data Engineer", is_active: true, department};
-    const rows = Array.from({length: 23}, (_, i) => ({candidate_id: `33333333-3333-4333-8333-${String(i + 1).padStart(12, "0")}`, full_name: i === 0 ? "Ada Nguyen" : `Ứng viên ${String(i + 1).padStart(2, "0")}`, email: i === 0 ? "ada@example.test" : i === 1 ? "binh@example.test" : null,
+    let rows = Array.from({length: 23}, (_, i) => ({candidate_id: `33333333-3333-4333-8333-${String(i + 1).padStart(12, "0")}`, full_name: i === 0 ? "Ada Nguyen" : `Ứng viên ${String(i + 1).padStart(2, "0")}`, email: i === 0 ? "ada@example.test" : i === 1 ? "binh@example.test" : null,
       has_photo: i < 2, applied_position: "Data Engineer", total_years_experience: i === 0 ? 0 : null, skills: ["Python", "SQL"], posting: i === 22 ? null : posting, created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-02T00:00:00Z"}));
     for (const row of rows) if (assignments.has(row.candidate_id)) {const id = assignments.get(row.candidate_id), p = adminPostings.find(p => p.posting_id === id); row.posting = p ? {...p, department: {department_id: p.department_id, department_name: p.department_name}} : null;}
+    if (user.role !== "admin") {
+      const scope = user.department_id === "engineering" ? department.department_id : user.department_id;
+      if (url.searchParams.has("department_id") && url.searchParams.get("department_id") !== scope) return error(403, "FORBIDDEN");
+      rows = rows.filter(row => row.posting?.department.department_id === scope);
+    }
     if (url.pathname.endsWith("/posting")) {
       const id = url.pathname.split("/")[3], row = rows.find(r => r.candidate_id === id);
       if (!row) return error(404,"CANDIDATE_NOT_FOUND");
@@ -275,7 +303,7 @@ const server = http.createServer(async (req, res) => {
       return json(200, {type: "confirmation_required", thread_id: c.item.thread_id, pending_confirmations: c.pending_confirmations});
     }
     if (mode === "incomplete") {c.execution_status = "failed"; return error(503, "DEPENDENCY_UNAVAILABLE");}
-    const message = {id: randomUUID(), role: "assistant", content: "Tìm thấy ứng viên có kỹ năng Python và SQL."};
+    const message = {id: randomUUID(), role: "assistant", content: mode === "markdown" ? markdownAnswer : "Tìm thấy ứng viên có kỹ năng Python và SQL."};
     c.messages.push(message);
     if (mode === "uncertain") return error(504, "DEPENDENCY_TIMEOUT");
     return json(200, {type: "answer", thread_id: c.item.thread_id, message});
@@ -289,7 +317,7 @@ const server = http.createServer(async (req, res) => {
     c.pending_confirmations = c.pending_confirmations.filter(p => p.confirmation_id !== input.confirmation_id);
     c.execution_status = c.pending_confirmations.length ? "awaiting_confirmation" : "idle";
     if (!input.confirmed) return json(200, {type: "cancelled", thread_id: c.item.thread_id, message: null});
-    const message = {id: randomUUID(), role: "assistant", content: "Đã tìm ứng viên theo tiêu chí được xác nhận."}; c.messages.push(message);
+    const message = {id: randomUUID(), role: "assistant", content: "Đã tìm ứng viên theo tiêu chí được xác nhận.", candidate_results: [{kind:"candidate_ranking",title:"Data Engineer",unavailable:false,items:[{candidate_id:"33333333-3333-4333-8333-000000000001",full_name:"Ada Nguyen",applied_position:"Data Engineer",rank:1,overall_score:4.5,summary:"Phù hợp với yêu cầu Python và SQL.",strengths:["Python","SQL"],concerns:["Cần xác minh kinh nghiệm"],criteria:[{criterion:"Kỹ năng chuyên môn",score:4,justification:"Có dự án Python và SQL trong CV."}]}]}]}; c.messages.push(message);
     return json(200, {type: "answer", thread_id: c.item.thread_id, message});
   }
   if (match[2] === "feedback") return json(201, input);

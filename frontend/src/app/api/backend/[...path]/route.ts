@@ -5,6 +5,11 @@ import { backendFetch, connectionError, errorResponse, forwardResponse, mutation
 
 type Context = {params: Promise<{path: string[]}>};
 function allowed(method: string, path: string[]) {
+  if (path[0] === "ops") {
+    if (path.length === 2) return method === "GET" && ["dashboard", "optimization"].includes(path[1]) || method === "POST" && path[1] === "optimization";
+    if (path.length === 3 && path[1] === "optimization" && ["analyze", "defaults"].includes(path[2])) return method === "POST";
+    return method === "POST" && path.length === 4 && z.uuid().safeParse(path[2]).success && (path[1] === "optimization" && ["experiment", "approve", "rollback"].includes(path[3]) || path[1] === "experiments" && path[3] === "recover");
+  }
   if (path[0] === "admin") {
     if (path.length === 2 && ["departments", "postings", "users"].includes(path[1])) return method === "GET" || method === "POST";
     return path.length === 4 && path[1] === "users" && z.uuid().safeParse(path[2]).success && path[3] === "active" && method === "POST";
@@ -57,7 +62,7 @@ async function proxy(request: NextRequest, context: Context) {
   }
   let query = "";
   if (path === "candidates" || (segments[0] === "emails" && request.method === "GET")) query = request.nextUrl.search;
-  if (["admin", "ingestion"].includes(segments[0]) && request.method === "GET") query = request.nextUrl.search;
+  if (["admin", "ingestion", "ops"].includes(segments[0]) && request.method === "GET") query = request.nextUrl.search;
   if (segments[2] === "interview-questions" && request.method === "DELETE") query = request.nextUrl.search;
   if (path === "conversations" && request.method === "GET") {
     const limit = request.nextUrl.searchParams.get("limit") || "50";

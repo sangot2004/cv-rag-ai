@@ -1,12 +1,18 @@
-"""Read-only, admin-authorized candidate browsing; no model or object-store calls."""
+"""Read-only, department-scoped candidate browsing; no model or object-store calls."""
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import load_only, selectinload
 
-from src.auth.service import require_admin
+from src.auth.service import resolve_department
 from src.candidates.errors import CandidateNotFound
 from src.db import session as db_session
 from src.db.models import Candidate, CandidateSkill, JobPosting
 from src.retrieval.skill_normalizer import expand_search_terms
+
+
+def visibility_conditions(requested_department=None):
+    """Resolve the authenticated scope before querying either rows or totals."""
+    department = resolve_department(requested_department)
+    return [Candidate.posting.has(JobPosting.department_id == department)] if department else []
 
 
 def _summary(candidate):
@@ -36,16 +42,13 @@ def _summary(candidate):
 def list_candidates(*, page=1, page_size=20, q=None, position=None, skills=(),
                     department_id=None, posting_id=None, min_years_experience=None,
                     max_years_experience=None, sort="newest"):
-    require_admin()
-    conditions = []
+    conditions = visibility_conditions(department_id)
     if q:
         # SQL-bound values plus escaped LIKE metacharacters: % and _ are literal.
         conditions.append(or_(Candidate.full_name.icontains(q, autoescape=True),
                               Candidate.email.icontains(q, autoescape=True)))
     if position:
         conditions.append(Candidate.applied_position.icontains(position, autoescape=True))
-    if department_id:
-        conditions.append(Candidate.posting.has(JobPosting.department_id == department_id))
     if posting_id:
         conditions.append(Candidate.posting_id == posting_id)
     if min_years_experience is not None:
@@ -80,9 +83,9 @@ def list_candidates(*, page=1, page_size=20, q=None, position=None, skills=(),
 
 
 def get_candidate(candidate_id: str):
-    require_admin()
+    conditions = visibility_conditions()
     with db_session.SessionLocal() as session:
-        candidate = session.scalar(select(Candidate).where(Candidate.candidate_id == candidate_id).options(
+        candidate = session.scalar(select(Candidate).where(Candidate.candidate_id == candidate_id, *conditions).options(
             selectinload(Candidate.skills),
             selectinload(Candidate.posting).selectinload(JobPosting.department),
             selectinload(Candidate.experience), selectinload(Candidate.education),

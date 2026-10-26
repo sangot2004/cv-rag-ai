@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.api.schemas.common import StrictInput
 from src.chat.criteria import Criteria, CriteriaEdits
+from src.chat.candidate_results import ResultGroup
 
 
 class AskRequest(StrictInput):
@@ -36,6 +37,7 @@ class Message(BaseModel):
     id: str
     role: Literal["user", "assistant"]
     content: str
+    candidate_results: list[ResultGroup] = Field(default_factory=list)
 
 
 class PendingConfirmation(BaseModel):

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from urllib3 import PoolManager, Retry, Timeout
 from urllib3.exceptions import HTTPError
 
-from src.auth.service import require_admin
+from src.candidates.service import visibility_conditions
 from src.candidates.errors import CandidateNotFound, CandidatePhotoNotFound
 from src.chat.errors import DependencyUnavailable
 from src.db import session as db_session
@@ -13,10 +13,10 @@ from src.storage.minio_client import MinioStorage
 
 
 def get_candidate_photo(candidate_id: str) -> tuple[bytes, str]:
-    require_admin()
+    conditions = visibility_conditions()
     with db_session.SessionLocal() as session:
         row = session.execute(select(Candidate.photo_object_key).where(
-            Candidate.candidate_id == candidate_id)).one_or_none()
+            Candidate.candidate_id == candidate_id, *conditions)).one_or_none()
     if row is None:
         raise CandidateNotFound()
     if not row.photo_object_key:

@@ -1,0 +1,115 @@
+/* Motion follows user actions; reduced-motion users get immediate state changes. */
+:root {
+  --ease-soft: cubic-bezier(.22, 1, .36, 1);
+  --ease-settle: cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes content-arrive {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes dialog-arrive {
+  from { opacity: 0; transform: translateY(18px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes drawer-arrive {
+  from { opacity: .5; transform: translateX(-36px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes backdrop-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bar-arrive { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes chip-arrive {
+  from { opacity: 0; transform: translateY(4px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Run once when content mounts, with a short, bounded stagger. */
+  .candidate-content > .candidate-page-title,
+  .candidate-content > .candidate-card,
+  .candidate-content > .profile-heading,
+  .profile-sections > .candidate-card,
+  .ops-kpis > .ops-metric,
+  .ops-health > .candidate-card {
+    animation: content-arrive 480ms var(--ease-soft) backwards;
+  }
+  .candidate-content > .candidate-card:nth-child(3),
+  .ops-kpis > .ops-metric:nth-child(2) { animation-delay: 55ms; }
+  .candidate-content > .candidate-card:nth-child(4),
+  .ops-kpis > .ops-metric:nth-child(3) { animation-delay: 110ms; }
+  .ops-kpis > .ops-metric:nth-child(4),
+  .ops-health > .candidate-card:nth-child(2) { animation-delay: 165ms; }
+  .message:last-child { animation: content-arrive 320ms var(--ease-soft) backwards; }
+  .skill-list .badge { animation: chip-arrive 260ms var(--ease-soft) backwards; }
+  .candidate-card {
+    transition: box-shadow 350ms var(--ease-settle), border-color 350ms var(--ease-settle);
+  }
+  .btn, .icon-button, .skill-more {
+    transition: transform 260ms var(--ease-soft), background-color 200ms,
+      border-color 200ms, box-shadow 260ms var(--ease-soft), color 200ms;
+  }
+  .btn:active:not(:disabled), .icon-button:active:not(:disabled), .skill-more:active {
+    transform: scale(.96); transition-duration: 90ms;
+  }
+  .candidate-navigation > a {
+    transition: background-color 220ms, box-shadow 300ms, color 220ms, transform 300ms var(--ease-soft);
+  }
+  .candidate-navigation > a > svg, .ops-metric-label > svg {
+    transition: transform 400ms var(--ease-soft);
+  }
+  .ops-bar {
+    transform-origin: center bottom;
+    animation: bar-arrive 650ms var(--ease-soft) backwards;
+    transition: height 650ms var(--ease-soft), filter 200ms;
+  }
+  .ops-chart-column:nth-child(3n+2) .ops-bar { animation-delay: 60ms; }
+  .ops-chart-column:nth-child(3n) .ops-bar { animation-delay: 120ms; }
+  .ops-chart-tooltip { animation: content-arrive 180ms var(--ease-soft); }
+  .portrait-canvas { transition: width 360ms var(--ease-soft), height 360ms var(--ease-soft); }
+  dialog[open]:not(.mobile-drawer) { animation: dialog-arrive 350ms var(--ease-soft); }
+  .mobile-drawer[open] { animation: drawer-arrive 350ms var(--ease-soft); }
+  dialog[open]::backdrop { animation: backdrop-arrive 280ms ease-out; }
+  /* Browsers supporting intrinsic-size transitions animate both open and close.
+     Others retain the native, keyboard-accessible details behavior. */
+  @supports (interpolate-size: allow-keywords) {
+    .advanced-filters { interpolate-size: allow-keywords; }
+    .advanced-filters::details-content {
+      height: 0;
+      overflow: clip;
+      transition: height 380ms var(--ease-soft), content-visibility 380ms allow-discrete;
+    }
+    .advanced-filters[open]::details-content { height: auto; overflow: visible; }
+  }
+  @media (min-width:768px) {
+    .candidate-workspace { transition: grid-template-columns 460ms var(--ease-soft); }
+    .desktop-sidebar { overflow-x: clip; }
+    .desktop-sidebar .nav-label {
+      display: inline-block; overflow: hidden; max-width: 210px; opacity: 1;
+      transition: max-width 400ms var(--ease-soft), opacity 180ms;
+    }
+    .navigation-collapsed .desktop-sidebar .nav-label {
+      display: inline-block; max-width: 0; opacity: 0;
+    }
+    .desktop-sidebar .candidate-navigation > a { gap: 12px; transition: gap 400ms, padding 400ms, background-color 220ms, color 220ms; }
+    .navigation-collapsed .desktop-sidebar .candidate-navigation > a { gap: 0; }
+  }
+  @media (hover:hover) and (pointer:fine) {
+    .btn:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn:active:not(:disabled) { transform: translateY(0) scale(.97); }
+    .icon-button:hover:not(:disabled) { transform: translateY(-1px); }
+    .candidate-navigation > a:hover > svg { transform: translateX(2px); }
+    .candidate-card:hover { border-color: #ced9ee; box-shadow: 0 10px 32px rgb(25 48 95 / 7%); }
+    .ops-metric:hover .ops-metric-label > svg { transform: translateY(-3px) rotate(-6deg); }
+    .portrait-trigger { transition: transform 350ms var(--ease-soft), box-shadow 350ms; }
+    .portrait-trigger:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgb(25 48 95 / 13%); }
+  }
+}
+.advanced-filters > summary { list-style: none; }
+.advanced-filters > summary::-webkit-details-marker { display: none; }
+.advanced-filters > summary::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 10px 1px 2px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+.advanced-filters[open] > summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .advanced-filters > summary::before { transition: transform 300ms var(--ease-soft); }
+}

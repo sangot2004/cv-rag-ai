@@ -3,15 +3,15 @@ from langchain_core.tools import tool
 from src.evaluation.evaluator import evaluate_candidate
 
 
-@tool
-def evaluate_candidate_against_jd(candidate_id: str, job_description: str) -> str:
+@tool(response_format="content_and_artifact")
+def evaluate_candidate_against_jd(candidate_id: str, job_description: str) -> tuple[str, dict | None]:
     """Đánh giá 1 ứng viên cụ thể có phù hợp với 1 Job Description hay không.
     Dùng khi câu hỏi yêu cầu CHẤM ĐIỂM/ĐÁNH GIÁ ứng viên theo tiêu chí công
     việc, không phải chỉ tìm kiếm/liệt kê ứng viên.
     """
     result = evaluate_candidate(candidate_id, job_description)
     if result is None:
-        return f"Không tìm thấy candidate_id={candidate_id}."
+        return f"Không tìm thấy candidate_id={candidate_id}.", None
 
     criteria_lines = "\n".join(
         f"  - {c.criterion}: {c.score}/5 — {c.justification}" for c in result.criteria
@@ -22,4 +22,4 @@ def evaluate_candidate_against_jd(candidate_id: str, job_description: str) -> st
         f"Điểm mạnh: {', '.join(result.strengths)}\n"
         f"Cần lưu ý: {', '.join(result.concerns)}\n"
         f"Tóm tắt: {result.summary}"
-    )
+    ), {"kind": "candidate_evaluation", "title": "Đánh giá ứng viên theo JD", "items": [result.model_dump()]}

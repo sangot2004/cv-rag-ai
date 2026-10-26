@@ -10,7 +10,7 @@ export function SessionGate({children}: {children: (user: User) => React.ReactNo
   const session = useQuery({queryKey: ["session"], queryFn: async ({signal}) => userSchema.parse(await api("/api/session/me", {signal})), refetchOnWindowFocus: "always", refetchInterval: 60_000});
   useEffect(() => {
     if (session.data) client.removeQueries({predicate: query =>
-      ["history", "conversations", "candidates", "candidate", "interviews", "emails", "management", "ingestion"].includes(String(query.queryKey[0])) && query.queryKey[1] !== session.data.user_id});
+      ["history", "conversations", "candidates", "candidate", "interviews", "emails", "management", "ingestion", "ops"].includes(String(query.queryKey[0])) && query.queryKey[1] !== session.data.user_id});
   }, [client, session.data]);
   useEffect(() => {
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("cv-session") : null;

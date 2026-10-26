@@ -4,7 +4,8 @@ from uuid import UUID
 import pytest
 from sqlalchemy.exc import OperationalError
 
-from src.auth.errors import AuthenticationRequired, Forbidden
+from src.auth.errors import AuthenticationRequired
+from src.candidates.errors import CandidateNotFound
 from src.auth.service import auth_scope
 from src.candidates import service
 from src.db import session as db_session
@@ -155,18 +156,19 @@ def test_detail_sections_nullable_fields_and_no_storage_secrets(candidates, monk
     assert api.extracted == [] and api.observations == []
 
 
-def test_auth_admin_only_and_direct_service_guard(candidates):
+def test_auth_and_direct_service_guard(candidates):
     api, ids, dept_a, *_ = candidates
     for path in ("/api/candidates", f"/api/candidates/{ids[0]}", f"/api/candidates/{identifier(999)}"):
         assert api.client.get(path).status_code == 401
         for name in ("alice", "bobby", "carol"):
             result = api.client.get(path, headers=api.headers(name))
-            assert result.status_code == 403
-            assert result.json()["error"]["code"] == "FORBIDDEN"
+            assert result.status_code == (200 if path == "/api/candidates" else 404)
+            if path == "/api/candidates":
+                assert result.json()["total"] == 0
     assert api.client.get("/api/candidates", headers=api.headers(), params={"department_id": dept_a}).status_code == 403
     with pytest.raises(AuthenticationRequired):
         service.list_candidates()
-    with auth_scope(api.tokens["alice"]), pytest.raises(Forbidden):
+    with auth_scope(api.tokens["alice"]), pytest.raises(CandidateNotFound):
         service.get_candidate(ids[0])
 
 
@@ -224,8 +226,8 @@ def test_portrait_binary_auth_projection_and_read_only_storage(candidates, monke
     assert api.client.get(f"/api/candidates/{ids[1]}", headers=api.headers("admin")).json()["has_photo"] is False
     calls.clear()
     assert api.client.get(url).status_code == 401
-    assert api.client.get(url, headers=api.headers("alice")).status_code == 403
-    assert api.client.get(f"/api/candidates/{identifier(999)}/photo", headers=api.headers("alice")).status_code == 403
+    assert api.client.get(url, headers=api.headers("alice")).status_code == 404
+    assert api.client.get(f"/api/candidates/{identifier(999)}/photo", headers=api.headers("alice")).status_code == 404
     for candidate_id, code in [(ids[1], "CANDIDATE_PHOTO_NOT_FOUND"), (identifier(999), "CANDIDATE_NOT_FOUND")]:
         response = api.client.get(f"/api/candidates/{candidate_id}/photo", headers=api.headers("admin"))
         assert response.status_code == 404
@@ -234,7 +236,7 @@ def test_portrait_binary_auth_projection_and_read_only_storage(candidates, monke
     assert api.client.get("/api/candidates/invalid/photo", headers=api.headers("admin")).status_code == 422
     with pytest.raises(AuthenticationRequired):
         photos.get_candidate_photo(ids[0])
-    with auth_scope(api.tokens["alice"]), pytest.raises(Forbidden):
+    with auth_scope(api.tokens["alice"]), pytest.raises(CandidateNotFound):
         photos.get_candidate_photo(ids[0])
 
 
@@ -257,3 +259,76 @@ def test_portrait_storage_errors_do_not_leak_details(candidates, monkeypatch, ca
     assert response.status_code == status
     assert "SECRET" not in response.text and "private/photo.jpg" not in response.text
     assert get_list(api)["total"] == 5
+
+
+def test_testers_only_see_department_candidates_and_current_assignment(candidates, monkeypatch):
+    from src.db.models import AppUser
+    from src.candidates import photos
+    from types import SimpleNamespace
+    api, ids, dept_a, dept_b, post_a, post_b = candidates
+    with api.db() as db:
+        for name, dept in (("alice", dept_a), ("carol", dept_b)):
+            db.query(AppUser).filter_by(username=name).one().department_id = dept
+        db.commit()
+    reads = []
+    monkeypatch.setattr(photos, "MinioStorage", lambda **kw: SimpleNamespace(
+        download_bytes=lambda key: reads.append(key) or b"\xff\xd8\xfffixture"))
+    for name, expected in (("alice", [ids[0], ids[1], ids[4]]), ("carol", [ids[2]])):
+        h = api.headers(name)
+        result = api.client.get("/api/candidates?page_size=1", headers=h).json()
+        assert result["total"] == len(expected) and result["total_pages"] == len(expected)
+        assert result["items"][0]["candidate_id"] == expected[0]
+        for candidate_id in ids:
+            assert api.client.get(f"/api/candidates/{candidate_id}", headers=h).status_code == (200 if candidate_id in expected else 404)
+        assert api.client.post(f"/api/candidates/{ids[0]}/posting", headers=h,
+            json={"posting_id":post_b,"expected_posting_id":post_a}).status_code == 403
+    assert api.client.get("/api/candidates",headers=api.headers("alice"),params={"department_id":dept_b}).status_code == 403
+    assert api.client.get("/api/candidates",headers=api.headers("alice"),params={"posting_id":post_b}).json()["total"] == 0
+    assert api.client.get("/api/candidates",headers=api.headers("alice"),params={"skills":"SQL"}).json()["total"] == 1
+    assert api.client.get(f"/api/candidates/{ids[0]}/photo",headers=api.headers("alice")).status_code == 200
+    reads.clear()
+    for candidate_id in (ids[0], ids[3]):
+        assert api.client.get(f"/api/candidates/{candidate_id}/photo",headers=api.headers("carol")).status_code == 404
+    assert not reads
+    with api.db() as db:
+        db.get(Candidate,ids[0]).posting_id=post_b
+        db.commit()
+    assert api.client.get(f"/api/candidates/{ids[0]}",headers=api.headers("alice")).status_code == 404
+    assert api.client.get(f"/api/candidates/{ids[0]}/photo",headers=api.headers("alice")).status_code == 404
+    assert not reads
+    assert api.client.get(f"/api/candidates/{ids[0]}",headers=api.headers("carol")).status_code == 200
+    assert get_list(api)["total"] == 5
+
+
+def test_chat_ranking_artifacts_survive_history_and_recheck_scope(candidates, monkeypatch):
+    import importlib
+    from src.db.models import AppUser
+    api, ids, dept_a, dept_b, post_a, post_b = candidates
+    with api.db() as db:
+        db.query(AppUser).filter_by(username="alice").one().department_id=dept_a
+        db.commit()
+    jd_tool=importlib.import_module("src.agent.tools.jd_matching_tool")
+    def rank(jd, top_k=5):
+        return [{"candidate_id":cid,"overall_score":4.5,"summary":"Phù hợp Python",
+                 "criteria":[{"criterion":"Python","score":4,"justification":"Có dự án Python"}],
+                 "strengths":["Python"],"concerns":["Cần xác minh kinh nghiệm"]} for cid in (ids[0],ids[2])]
+    monkeypatch.setattr(jd_tool,"rank_candidates_for_jd",rank)
+    thread=api.create()
+    path=f"/api/conversations/{thread}"
+    first=api.client.post(path+"/messages",headers=api.headers(),json={"question":"rank one"}).json()
+    confirmation=first["pending_confirmations"][0]["confirmation_id"]
+    response=api.client.post(path+"/resume",headers=api.headers(),json={"confirmation_id":confirmation,"confirmed":True})
+    assert response.status_code==200,response.text
+    groups=response.json()["message"]["candidate_results"]
+    assert groups[0]["unavailable"] is True
+    assert [x["candidate_id"] for x in groups[0]["items"]]==[ids[0]]
+    assert groups[0]["items"][0]["full_name"]=="Ada Nguyen"
+    assert groups[0]["items"][0]["criteria"][0]["score"]==4
+    history=api.client.get(path+"/messages",headers=api.headers()).json()
+    assert history["messages"][-1]["candidate_results"]==groups
+    assert api.client.get(path+"/messages",headers=api.headers("carol")).status_code==404
+    with api.db() as db:
+        db.get(Candidate,ids[0]).posting_id=post_b
+        db.commit()
+    history=api.client.get(path+"/messages",headers=api.headers()).json()
+    assert history["messages"][-1]["candidate_results"][0]["items"]==[]
