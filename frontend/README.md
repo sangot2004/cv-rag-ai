@@ -12,10 +12,16 @@ Next.js App Router + TypeScript, giao diện theo bản F1 đã duyệt trong `d
 - Feedback append, xóa hội thoại, thử dọn lại khi backend báo cleanup pending.
 - Khóa gửi khi đang chạy, chờ xác nhận, trạng thái không chắc chắn hoặc execution incomplete.
 - Giao diện desktop/mobile, drawer và hộp thoại xóa dùng native dialog.
-- Trang `/forbidden`; quyền dữ liệu và thao tác luôn do FastAPI kiểm tra.
-- Danh sách và chi tiết ứng viên cho admin, tìm kiếm/lọc/phân trang, giữ bộ lọc qua URL.
+- Trang `/forbidden`, 404 tiếng Việt, loading và error boundary có cách tiếp tục.
+- Danh sách/chi tiết/ảnh ứng viên: admin và tester theo phòng ban, tìm kiếm/lọc/phân trang, giữ bộ lọc qua URL.
+- Thẻ JD/Top-K trong chat, Markdown và soạn thư từ thẻ cho admin.
+- Phỏng vấn, email, tiếp nhận CV, quản trị, Ops/optimization cho admin.
 
-Các trang quản trị, ứng viên, email, ingestion và Ops sẽ nối sau khi có API tương ứng.
+[Hướng dẫn triển khai demo HTTPS](../docs/deployment/demo.md),
+[checklist nghiệm thu](../docs/testing/release-checklist.md) và
+[báo cáo kiểm chứng](../docs/testing/release-report-2026-10-28.md).
+Build tạo `.next/standalone` cho Docker; backend bearer token tiếp tục nằm trong
+cookie HttpOnly và quyền luôn do FastAPI kiểm tra.
 
 ## Chạy local
 

@@ -248,6 +248,7 @@ test("Top-K cards persist, expand criteria and open scoped profiles on mobile", 
   await page.getByRole("button",{name:"Xác nhận và tìm ứng viên",exact:true}).click();
   const group=page.getByRole("region",{name:"Kết quả Top-K",exact:true});
   await expect(group.getByRole("link",{name:"Ada Nguyen",exact:true})).toBeVisible();
+  await expect(group.getByRole("link",{name:"Soạn thư mời",exact:true})).toHaveCount(0);
   await group.getByText("Điểm và lý do theo từng tiêu chí",{exact:true}).click();
   await expect(group.getByText("Có dự án Python và SQL trong CV.",{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
@@ -259,6 +260,41 @@ test("Top-K cards persist, expand criteria and open scoped profiles on mobile", 
   await group.getByRole("link",{name:"Xem hồ sơ",exact:false}).click();
   await expect(page.getByRole("heading",{name:"Ada Nguyen",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Soạn thư mời",exact:true})).toHaveCount(0);
+});
+
+test("admin opens a preselected invitation from chat and explicitly creates the draft", async ({page, request}) => {
+  const candidateId = "33333333-3333-4333-8333-000000000001";
+  await page.setViewportSize({width:390, height:844});
+  await request.post(`${backend}/control/mode`, {data:{mode:"jd"}});
+  await login(page, "sang");
+  await send(page, "Tìm top 3 ứng viên theo JD Data Engineer");
+  await page.getByRole("button", {name:"Xác nhận và tìm ứng viên", exact:true}).click();
+  const group = page.getByRole("region", {name:"Kết quả Top-K", exact:true});
+  const invite = group.getByRole("link", {name:"Soạn thư mời", exact:true});
+  await expect(invite).toHaveAttribute("href", `/emails/compose?candidate=${candidateId}`);
+  await page.reload();
+  await expect(invite).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await invite.scrollIntoViewIfNeeded();
+  await page.screenshot({path:"test-results/chat-invitation-mobile.png", animations:"disabled"});
+  await invite.click();
+  await expect(page).toHaveURL(`/emails/compose?candidate=${candidateId}`);
+  await expect(page.getByRole("heading", {name:"Soạn thư mời", exact:true})).toBeVisible();
+  await expect(page.getByLabel("Chọn Ada Nguyen", {exact:true})).toBeChecked();
+  await expect(page.locator(".email-candidate-option input:checked")).toHaveCount(1);
+  await expect(page.getByRole("textbox", {name:"Vị trí tuyển dụng", exact:true})).toHaveValue("Data Engineer");
+  let calls = await (await request.get(`${backend}/control/calls`)).json();
+  expect(calls.filter((c: {path:string; method:string})=>c.method === "POST" && c.path.startsWith("/api/emails"))).toHaveLength(0);
+  await page.getByLabel("Ngày phỏng vấn", {exact:true}).fill("2026-12-01");
+  await page.getByLabel("Giờ phỏng vấn (Việt Nam)", {exact:true}).fill("10:00");
+  await page.getByLabel("Link phỏng vấn", {exact:true}).fill("https://meet.example.test/interview");
+  await page.getByRole("button", {name:"Tạo bản nháp", exact:true}).click();
+  await expect(page).toHaveURL(/\/emails\/batches\/[a-f0-9-]+$/);
+  calls = await (await request.get(`${backend}/control/calls`)).json();
+  const created = calls.filter((c: {path:string; method:string})=>c.method === "POST" && c.path === "/api/emails/batches");
+  expect(created).toHaveLength(1);
+  expect(created[0].body.candidate_ids).toEqual([candidateId]);
+  expect(calls.some((c: {path:string})=>c.path.endsWith("/dispatch"))).toBeFalsy();
 });
 
 test("assistant Markdown renders safely and stays within mobile chat after reload", async ({page, request}) => {

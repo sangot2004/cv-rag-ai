@@ -5,6 +5,15 @@
 **Vị trí:** `frontend/` trong repository `cv-rag-ai`.
 **Phạm vi:** Toàn bộ giao diện sản phẩm, triển khai theo từng đợt dựa trên mức sẵn sàng của API.
 
+**Chốt phạm vi 28/10/2026:** JD/Top-K dùng thẻ kết quả trong chat, đã nối soạn thư
+cho admin. OPS-01/02/03 có tại `/ops` và `/ops/optimization`. Đợt hoàn thiện hiện tại
+tập trung vào responsive, trạng thái lỗi/loading/404, kiểm thử toàn luồng và quyền,
+cùng cấu hình demo Docker/HTTPS. Các màn EVAL-01/MATCH-01 riêng không triển khai;
+không bổ sung chuyển JD sang phỏng vấn hoặc chọn hàng loạt từ chat trong đợt này.
+Xem [checklist nghiệm thu](../testing/release-checklist.md) và
+[hướng dẫn triển khai](../deployment/demo.md). Những bảng kế hoạch cũ bên dưới là
+bối cảnh thiết kế ban đầu; phạm vi chốt ở đoạn này có ưu tiên.
+
 **Cập nhật thiết kế 19/10/2026:** đã chuẩn hóa prototype F1 từ HTML Stitch: login,
 shell admin/tester, danh sách hội thoại, JD confirmation và các trạng thái lỗi/mobile.
 Xem [hướng dẫn review](../../design/stitch_agentic_rag_cv_interface/README.md)
@@ -44,7 +53,8 @@ Email, phỏng vấn, quản trị và tiếp nhận CV đã có HTTP API/FE. Qu
 xem/tạo phòng ban và vị trí, xem/tạo/khóa/mở tài khoản; tiếp nhận gồm upload,
 theo dõi/khôi phục job và gán vị trí cho CV hiện có. Xem [contract và kiểm thử](../api/administration-ingestion.md).
 OPS-01 đã triển khai tại `/ops` với API giám sát usage; xem [contract Ops](../api/ops-monitoring.md).
-Đánh giá, Top-K, optimization/experiment và dashboard tổng quan còn theo kế hoạch phía dưới.
+Đánh giá/Top-K đã có trong chat; optimization/experiment đã triển khai tại
+`/ops/optimization`. Dashboard tổng quan là phần mở rộng chưa triển khai.
 
 ### 1.2. Cách chia phạm vi
 
@@ -69,7 +79,9 @@ chưa thêm một role HR riêng khi backend chưa hỗ trợ.
 | Login/logout, xem thông tin tài khoản hiện tại | Có | Có |
 | Hội thoại, feedback, JD confirmation | Hội thoại của mình | Hội thoại của mình |
 | Phạm vi CV khi chat | Phòng ban được cấp | Theo phạm vi backend cho phép |
-| Màn ứng viên, đánh giá, Top-K, phỏng vấn | Chưa mở màn riêng | Có khi API hoàn thành |
+| Danh sách/chi tiết/ảnh ứng viên | Phòng ban được cấp | Theo phạm vi admin |
+| Đánh giá JD/Top-K trong chat | Phòng ban được cấp | Theo phạm vi admin |
+| Câu hỏi phỏng vấn | Không | Có |
 | Email, ingestion jobs, upload CV | Chưa mở | Có khi API hoàn thành |
 | Ops, optimization, quản lý tài khoản/phòng ban | Không | Có khi API hoàn thành |
 | Đọc hội thoại của người khác | Không | Không |

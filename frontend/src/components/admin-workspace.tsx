@@ -28,7 +28,7 @@ export function AdminWorkspace({user, title, active, children, mainId = "candida
   }
   const sidebar = <>
     <div className="sidebar-top"><Brand/><button className="icon-button mobile-only" aria-label="Đóng điều hướng" onClick={() => drawer.current?.close()}><X size={20}/></button></div>
-    <nav className="sidebar-content candidate-navigation" aria-label="Điều hướng chính">
+    <nav className="sidebar-content candidate-navigation" aria-label="Điều hướng chính" onClick={event => {if (event.target instanceof Element && event.target.closest("a")) drawer.current?.close();}}>
       <p className="sidebar-label">Không gian làm việc</p>
       <Link href="/chat" title="Hỏi đáp AI" aria-label="Hỏi đáp AI"><MessageSquare size={18}/><span className="nav-label">Hỏi đáp AI</span></Link>
       <Link href="/candidates" aria-current={active === "candidates" ? "page" : undefined} onClick={() => drawer.current?.close()} title="Ứng viên" aria-label="Ứng viên"><Users size={18}/><span className="nav-label">Ứng viên</span></Link>

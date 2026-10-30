@@ -59,6 +59,8 @@ def test_score_ignores_unspecified_fields_and_keeps_skills_order_insensitive():
 
 
 def test_experiment_pins_each_variant_and_records_versions(monkeypatch):
+    # This test measures prompt/version handling, not MySQL advisory locks.
+    monkeypatch.setattr("src.ops.locking.ops_lock", lambda key: nullcontext(True))
     engine = create_engine("sqlite://")
     for table in (OptimizationConfig.__table__, OptimizationPointer.__table__, LLMUsageLog.__table__):
         table.create(engine)

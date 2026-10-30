@@ -1,0 +1,7 @@
+{$DEMO_DOMAIN:localhost} {
+    encode zstd gzip
+    request_body {
+        max_size 64MB
+    }
+    reverse_proxy frontend:3000
+}

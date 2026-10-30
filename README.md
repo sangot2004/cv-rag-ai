@@ -1,4 +1,12 @@
-# CV RAG AI/Data — DB Migration
+# CV RAG AI — Trợ lý tuyển dụng
+
+Frontend Next.js/BFF, FastAPI và worker Celery: tiếp nhận CV, tra cứu theo phòng ban,
+đánh giá JD/Top-K trong chat, chuẩn bị phỏng vấn, duyệt thư mời và System Ops.
+
+- [Chạy frontend](frontend/README.md)
+- [Triển khai demo bằng Docker và HTTPS](docs/deployment/demo.md)
+- [Checklist nghiệm thu và phân quyền](docs/testing/release-checklist.md)
+- [Kết quả kiểm chứng ngày 28/10/2026](docs/testing/release-report-2026-10-28.md)
 
 ## HTTP API cho frontend
 
@@ -140,7 +148,7 @@ streamlit run app.py
 
 Mở `http://localhost:8501`, có 4 tab:
 
-- **Hỏi đáp** — chat với Agent (10 tool), có **sidebar lịch sử hội thoại giống Claude/Gemini**: bấm "➕ Cuộc trò chuyện mới" để tạo hội thoại mới, bấm vào 1 hội thoại cũ trong danh sách để xem lại và hỏi tiếp (Agent vẫn nhớ ngữ cảnh cũ), bấm 🗑️ để xóa. Lịch sử lưu bền vào file `chat_history.db` (SQLite), sống sót qua restart app — không mất khi tắt server. Danh sách hội thoại dùng chung cho mọi người mở app (demo nội bộ, chưa có đăng nhập).
+- **Hỏi đáp** — chat với Agent (10 tool), có **sidebar lịch sử hội thoại giống Claude/Gemini**: bấm "➕ Cuộc trò chuyện mới" để tạo hội thoại mới, bấm vào 1 hội thoại cũ trong danh sách để xem lại và hỏi tiếp (Agent vẫn nhớ ngữ cảnh cũ), bấm 🗑️ để xóa. Lịch sử lưu bền vào file `chat_history.db` (SQLite), sống sót qua restart app — không mất khi tắt server. Đăng nhập bắt buộc; danh sách và nội dung hội thoại được giới hạn theo tài khoản.
 - **Đánh giá theo JD** — nhập `candidate_id` + JD (gõ tay hoặc upload PDF), xem điểm chấm theo rubric cố định
 - **Top-K theo JD** — đưa 1 JD vào (gõ tay hoặc PDF), hệ thống tự tìm và chấm điểm chi tiết những ứng viên phù hợp nhất trong toàn hệ thống (tối đa 10 người)
 - **Danh sách ứng viên** — browse nhanh, lọc theo kỹ năng, xem ảnh chân dung (nếu tách được), copy `candidate_id` để dùng ở các tab khác

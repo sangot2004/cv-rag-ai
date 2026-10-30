@@ -1,102 +1,172 @@
-version: "3.9"
+x-app: &app
+  image: cv-rag-api:demo
+  build: .
+  env_file: ${APP_ENV_FILE:-.env}
+  environment:
+    MYSQL_CONN: mysql+pymysql://${MYSQL_USER:-admin}:${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-cv_rag_db}
+    REDIS_URL: redis://redis:6379/0
+    QDRANT_URL: http://qdrant:6333
+    MINIO_ENDPOINT: minio:9000
+    MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
+    MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin123}}
+    MINIO_BUCKET: ${MINIO_BUCKET:-cv-rag-files}
+    MINIO_SECURE: "false"
+    CHAT_HISTORY_PATH: /app/data/chat_history.db
+    GMAIL_CREDENTIALS_PATH: /app/runtime/credentials.json
+    GMAIL_TOKEN_PATH: /app/runtime/token.json
+    API_CORS_ORIGINS: https://${DEMO_DOMAIN:-localhost}
+  volumes:
+    - chat_data:/app/data
+    - model_cache:/home/app/.cache
+    - ./deploy/demo/runtime:/app/runtime
+  networks: [cvrag-net]
 
 services:
   mysql:
-    image: mysql:8.0
     container_name: cvrag-mysql
+    networks: [cvrag-net]
+    image: ${MYSQL_IMAGE:-mysql:8.0}
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cv_rag_db}
+      MYSQL_USER: ${MYSQL_USER:-admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+    ports: ["${DATA_BIND_ADDRESS:-127.0.0.1}:${MYSQL_PORT:-3306}:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-uroot",
-          "-p${MYSQL_ROOT_PASSWORD}",
-        ]
-      interval: 10s
+      test: [CMD-SHELL, 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql -h 127.0.0.1 -u"$${MYSQL_USER}" "$${MYSQL_DATABASE}" -e "SELECT 1" >/dev/null']
+      interval: 5s
       timeout: 5s
-      retries: 10
-    networks:
-      - cvrag-net
+      retries: 30
 
   redis:
-    image: redis:7-alpine
     container_name: cvrag-redis
+    networks: [cvrag-net]
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
+    command: [redis-server, --appendonly, "yes"]
+    ports: ["${DATA_BIND_ADDRESS:-127.0.0.1}:${REDIS_PORT:-6379}:6379"]
+    volumes: [redis_data:/data]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - cvrag-net
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 15
 
   qdrant:
-    image: qdrant/qdrant:latest
     container_name: cvrag-qdrant
+    networks: [cvrag-net]
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:latest}
     restart: unless-stopped
-    ports:
-      - "${QDRANT_HTTP_PORT:-6333}:6333"
-      - "${QDRANT_GRPC_PORT:-6334}:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - cvrag-net
+    ports: ["${DATA_BIND_ADDRESS:-127.0.0.1}:${QDRANT_HTTP_PORT:-6333}:6333", "${DATA_BIND_ADDRESS:-127.0.0.1}:${QDRANT_GRPC_PORT:-6334}:6334"]
+    volumes: [qdrant_data:/qdrant/storage]
 
   minio:
-    image: minio/minio:latest
     container_name: cvrag-minio
+    networks: [cvrag-net]
+    image: ${MINIO_IMAGE:-minio/minio:latest}
     restart: unless-stopped
+    command: [server, /data, --console-address, ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
-    volumes:
-      - minio_data:/data
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-minioadmin}}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minioadmin123}}
+    ports: ["${DATA_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000", "${DATA_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"]
+    volumes: [minio_data:/data]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - cvrag-net
+      test: [CMD, curl, -f, http://localhost:9000/minio/health/live]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
-  # Tạo bucket mặc định tự động khi stack khởi động lần đầu.
-  # Container này chạy 1 lần rồi tự thoát (exit 0), không phải service thường trực.
   minio-init:
     image: minio/mc:latest
     container_name: cvrag-minio-init
+    restart: "no"
+    networks: [cvrag-net]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-minioadmin}}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minioadmin123}}
+      MINIO_BUCKET: ${MINIO_BUCKET:-cv-rag-files}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && mc mb --ignore-existing "local/$$MINIO_BUCKET"'
     depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-      mc mb --ignore-existing local/${MINIO_BUCKET} &&
-      echo 'Bucket ${MINIO_BUCKET} ready.'
-      "
-    networks:
-      - cvrag-net
+      minio: {condition: service_healthy}
+
+  prepare:
+    <<: *app
+    profiles: [demo, scheduler]
+    restart: "no"
+    command: [/bin/sh, -c, "python -m alembic upgrade head && python -m scripts.prepare_demo"]
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      qdrant: {condition: service_started}
+
+  api:
+    <<: *app
+    profiles: [demo]
+    restart: unless-stopped
+    depends_on:
+      prepare: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8000/health]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    stop_grace_period: 180s
+
+  worker:
+    <<: *app
+    profiles: [demo]
+    restart: unless-stopped
+    command: [celery, -A, src.workers.celery_app, worker, --pool=solo, --concurrency=1, --loglevel=info]
+    depends_on:
+      prepare: {condition: service_completed_successfully}
+    stop_grace_period: 180s
+
+  beat:
+    <<: *app
+    profiles: [scheduler]
+    restart: unless-stopped
+    command: [celery, -A, src.workers.celery_app, beat, --loglevel=info, --schedule=/app/data/celerybeat-schedule]
+    depends_on:
+      prepare: {condition: service_completed_successfully}
+
+  frontend:
+    profiles: [demo]
+    networks: [cvrag-net]
+    image: cv-rag-frontend:demo
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      APP_ORIGIN: https://${DEMO_DOMAIN:-localhost}
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  proxy:
+    profiles: [demo]
+    networks: [cvrag-net]
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    environment:
+      DEMO_DOMAIN: ${DEMO_DOMAIN:-localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/demo/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend: {condition: service_healthy}
 
 networks:
   cvrag-net:
@@ -107,3 +177,7 @@ volumes:
   redis_data:
   qdrant_data:
   minio_data:
+  chat_data:
+  model_cache:
+  caddy_data:
+  caddy_config:

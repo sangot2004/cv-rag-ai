@@ -9,6 +9,12 @@ Kết quả mới từ `find_top_candidates_for_jd` và `evaluate_candidate_agai
 - Lý do chấm điểm là nhận xét của AI. Chưa có trích dẫn nguồn được kiểm chứng riêng
   cho từng tiêu chí; FE không đặt nhãn “bằng chứng đã xác minh”.
 - Thẻ có nút Xem hồ sơ và phần chi tiết tiêu chí đóng/mở, bố cục hỗ trợ mobile.
+- Admin có thêm nút **Soạn thư mời** trên mỗi thẻ (cả Top-K và đánh giá JD).
+  Liên kết mở `/emails/compose?candidate=<candidate_id>` để tải và chọn sẵn đúng
+  ứng viên từ API hồ sơ. Tester không thấy nút này; trang soạn thư và API email
+  tiếp tục kiểm tra quyền admin.
+- Mở trang soạn thư chưa tạo nháp, gọi AI hay gửi email. Admin nhập thông tin
+  phỏng vấn rồi bấm **Tạo bản nháp** để tiếp tục luồng xem, sửa và duyệt thư hiện có.
 
 ## Contract
 
@@ -37,6 +43,9 @@ những thông tin đã từng được gửi trong câu trả lời văn bản.
 4. Kiểm tra thẻ, mở chi tiết tiêu chí, bấm Xem hồ sơ.
 5. Tải lại hội thoại: thẻ vẫn hiện cùng câu trả lời.
 6. Thử với tester để kiểm tra phạm vi phòng ban.
+7. Với admin, bấm **Soạn thư mời** trên thẻ: kiểm tra tên ứng viên được chọn sẵn,
+   vị trí mặc định lấy từ hồ sơ và có thể sửa. Nhập thông tin phỏng vấn rồi tạo nháp.
+8. Với tester, kiểm tra không có nút soạn thư trên thẻ và không truy cập được trang email.
 
 Hội thoại cũ không có artifact vẫn hiển thị văn bản, không tự gọi lại AI để dựng thẻ.
 Kiểm thử tự động dùng model/mock ngoại tuyến; chưa chạy ranking mới bằng Gemini thật
