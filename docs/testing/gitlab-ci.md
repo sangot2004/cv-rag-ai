@@ -14,6 +14,10 @@ Không cần tạo project runner riêng.
 | `compose-check` | Cấu hình Compose mặc định, demo, demo + scheduler | Cả ba cấu hình hợp lệ |
 
 Các job verify chạy độc lập. Browser tests bắt đầu sau khi frontend checks pass.
+Browser tests dùng `next dev`, nên lần đầu truy cập mỗi trang có thể phải chờ
+biên dịch. Trên CI, assertion chờ tối đa 15 giây và mỗi test tối đa 60 giây
+(local vẫn là 5 và 30 giây). Các test có timeout riêng giữ nguyên cấu hình đó.
+Không bật retry tự động; test vẫn phải đạt các assertion hiện có.
 Pipeline chạy khi push nhánh, tạo/cập nhật merge request hoặc chạy thủ công trên
 nhánh. Nếu nhánh đã có merge request, push chỉ tạo pipeline merge request để tránh
 chạy trùng. Tag không kích hoạt pipeline này.

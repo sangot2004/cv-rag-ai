@@ -1,7 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
+const isCI = Boolean(process.env.CI && process.env.CI !== "false");
+
 export default defineConfig({
-  testDir: "./tests", fullyParallel: false, workers: 1, timeout: 30_000,
+  testDir: "./tests", fullyParallel: false, workers: 1, timeout: isCI ? 60_000 : 30_000,
+  // next dev compiles routes on first access on a fresh CI runner.
+  expect: {timeout: isCI ? 15_000 : 5_000},
   use: {baseURL: "http://127.0.0.1:28100", browserName: "chromium", channel: process.env.PLAYWRIGHT_CHANNEL || "chrome", trace: "retain-on-failure"},
   webServer: [
     {command: "node tests/mock-backend.mjs", url: "http://127.0.0.1:28101/health", reuseExistingServer: false},
