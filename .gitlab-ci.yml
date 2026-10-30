@@ -10,7 +10,7 @@ default:
   interruptible: true
   timeout: 30m
 
-stages: [verify, browser]
+stages: [verify, browser, images]
 
 variables:
   LANGSMITH_TRACING: "false"
@@ -83,3 +83,56 @@ compose-check:
     - docker compose --env-file .env.example config --quiet
     - docker compose --env-file .env.example --profile demo config --quiet
     - docker compose --env-file .env.example --profile demo --profile scheduler config --quiet
+
+.docker-image:
+  stage: images
+  image: docker:27.5.1-cli
+  services:
+    - name: docker:27.5.1-dind
+      alias: docker
+      variables:
+        HEALTHCHECK_TCP_PORT: "2376"
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_CERT_PATH: /certs/client
+    DOCKER_TLS_VERIFY: "1"
+  before_script:
+    - docker info
+  script:
+    - |
+      IMAGE_REF="${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_SHA}"
+
+      docker build \
+        --pull \
+        --platform linux/amd64 \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --tag "$IMAGE_REF" \
+        "$BUILD_CONTEXT"
+
+      if [ "${CI_COMMIT_BRANCH:-}" = "feature/fastapi-core" ]; then
+        printf '%s' "$CI_REGISTRY_PASSWORD" |
+          docker login "$CI_REGISTRY" \
+            --username "$CI_REGISTRY_USER" \
+            --password-stdin
+
+        docker push "$IMAGE_REF"
+        docker logout "$CI_REGISTRY"
+      else
+        echo "Image built successfully; publishing is enabled on feature/fastapi-core."
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH"
+
+backend-image:
+  extends: .docker-image
+  variables:
+    IMAGE_NAME: backend
+    BUILD_CONTEXT: .
+
+frontend-image:
+  extends: .docker-image
+  variables:
+    IMAGE_NAME: frontend
+    BUILD_CONTEXT: ./frontend
