@@ -55,7 +55,6 @@ def generate_questions(candidate_id, *, max_questions, expected_revision, replac
                 raise InterviewConflict("INTERVIEW_REPLACE_REQUIRED", "Cần xác nhận thay bộ câu hỏi đã lưu.")
             cv_text = candidate.raw_text
         questions = generator.build_interview_questions(candidate_id, cv_text, max_questions)
-        # Long model calls may outlive a revoked session. Check again before save.
         require_admin()
         with db_session.SessionLocal() as db:
             candidate, rows = _load(db, candidate_id, lock=True)

@@ -26,7 +26,6 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Asia/Ho_Chi_Minh",
     enable_utc=True,
-    # Retry mặc định mọi task nếu không override riêng
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 )

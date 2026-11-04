@@ -142,7 +142,6 @@ def execute_job(identifier):
             db.commit()
         try:
             from src.ops.experiments import run_experiment
-            # Internal runner: creator authorization was rechecked above; no bearer in broker.
             report = run_experiment.__wrapped__(proposal_id, dataset)
             status, error = "completed", None
         except Exception:

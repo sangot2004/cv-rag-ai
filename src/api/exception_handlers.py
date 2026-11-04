@@ -49,7 +49,6 @@ async def error_response(request, exc):
     elif isinstance(exc, MessageNotFound):
         status, code, message = 404, "MESSAGE_NOT_FOUND", "Không tìm thấy câu trả lời trong hội thoại."
     elif isinstance(exc, RequestValidationError):
-        # Never echo input or Pydantic error context (may contain a password).
         status, code, message = 422, "VALIDATION_ERROR", "Dữ liệu gửi lên không hợp lệ. Hãy kiểm tra schema tại /docs."
     elif isinstance(exc, (TimeoutError, httpx.TimeoutException)):
         status, code, message = 504, "DEPENDENCY_TIMEOUT", "Dịch vụ phụ thuộc phản hồi quá thời gian chờ."
@@ -58,7 +57,6 @@ async def error_response(request, exc):
     elif isinstance(exc, HTTPException):
         status, code, message = exc.status_code, "HTTP_ERROR", "Yêu cầu HTTP không hợp lệ."
     request_id = request.state.request_id
-    # Type and correlation only: provider exceptions can include keys/DSNs/CV text.
     logger.log(logging.ERROR if status >= 500 else logging.INFO,
                "request_id=%s status=%s code=%s exception_type=%s",
                request_id, status, code, type(exc).__name__)

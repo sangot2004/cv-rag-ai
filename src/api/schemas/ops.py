@@ -16,7 +16,6 @@ class OpsFilters(BaseModel):
     @field_validator("days", mode="before")
     @classmethod
     def parse_days_query(cls, value):
-        # HTTP query values are strings; integer Literals do not coerce them.
         if isinstance(value, str) and value in {"1", "7", "30"}:
             return int(value)
         return value

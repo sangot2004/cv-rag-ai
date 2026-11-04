@@ -68,7 +68,6 @@ def dashboard(days=7, module=None, model=None, status=None, page=1, page_size=25
                    for key, column in (("modules", Log.module_name), ("models", Log.model_name), ("statuses", Log.status))}
         log_conditions = conditions + ([alert] if alerts_only else [])
         total = alert_count if alerts_only else summary["calls"]
-        # Explicit allowlist. Raw error text, CV, prompt and API keys are never part of this DTO.
         columns = [Log.id, Log.operation_id, Log.module_name, Log.model_name, Log.status,
                    Log.input_tokens, Log.output_tokens, Log.cached_tokens, Log.reasoning_tokens,
                    Log.latency_ms, Log.estimated_cost_usd, Log.pricing_version, Log.attempt, Log.created_at]

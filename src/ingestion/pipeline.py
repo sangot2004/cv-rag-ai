@@ -85,19 +85,16 @@ def _run_ingestion_pipeline(job_id: str) -> str:
             session.commit()
             return existing_job_candidate.candidate_id
 
-        # load file từ MinIO
         try:
             file_bytes = storage.download_bytes(job.minio_object_key)
         except Exception as e:
             raise CVIngestionError(f"Không tải được file từ MinIO: {e}") from e
 
-        # parse
         try:
             raw_text = extract_text_from_pdf(file_bytes)
         except PdfParseError as e:
             raise CVRejected(f"corrupt_pdf: {e}")
 
-        # check text hợp lệ, fallback OCR nếu nghi ngờ CV dạng scan/ảnh
         if len(raw_text) < settings.CV_MIN_TEXT_LENGTH:
             logger.info(
                 "Text quá ngắn (%d ký tự) — nghi ngờ CV dạng scan, thử OCR qua Gemini vision",
@@ -110,36 +107,28 @@ def _run_ingestion_pipeline(job_id: str) -> str:
                 raise CVIngestionError(f"OCR fallback lỗi: {e}") from e
 
             if len(ocr_text) < settings.CV_MIN_TEXT_LENGTH:
-                # Kể cả OCR cũng không ra đủ text -> thực sự không phải CV
                 raise CVRejected("text_too_short_even_after_ocr")
 
             raw_text = ocr_text
             logger.info("OCR fallback thành công, %d ký tự", len(raw_text))
 
-        # classify có phải CV không
         classification = classify_is_cv(raw_text)
         if not classification.is_cv or classification.confidence < settings.CV_CLASSIFY_MIN_CONFIDENCE:
             raise CVRejected(f"not_a_cv: {classification.reason}")
 
-        # check trùng nội dung theo text hash
         text_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
         existing = session.query(Candidate.candidate_id).filter(Candidate.content_hash == text_hash).first()
         if existing:
             raise CVRejected("duplicate_content_text_hash")
 
-        # LLM structured extraction
         try:
             cv_data = extract_cv_data(raw_text)
         except Exception as e:
             raise CVIngestionError(f"LLM extraction lỗi: {e}") from e
 
-        # validate schema
         if not cv_data.full_name:
             raise CVRejected("extraction_missing_full_name")
 
-        # ghi candidates + bảng con
-        # Reuse IDs if Qdrant succeeded but the SQL transaction failed. Retry
-        # replaces the same candidate's points rather than leaving new orphans.
         candidate_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "cv-ingestion:" + job_id))
         photo_object_key = None
         try:
@@ -149,8 +138,6 @@ def _run_ingestion_pipeline(job_id: str) -> str:
                 storage.upload_bytes(photo_object_key, photo_bytes, content_type="image/jpeg")
                 logger.info("Đã upload ảnh chân dung: %s", photo_object_key)
         except Exception:
-            # Lỗi tách/upload ảnh KHÔNG được làm fail cả job — đây là tính
-            # năng phụ (best-effort), CV vẫn xử lý bình thường không có ảnh.
             logger.exception("Lỗi khi tách/upload ảnh chân dung, bỏ qua (không chặn job)")
 
         posting_id = job.posting_id
@@ -221,7 +208,6 @@ def _run_ingestion_pipeline(job_id: str) -> str:
                 )
             )
 
-        # chunking + embedding + Qdrant
         documents = build_documents_from_cv(cv_data, candidate_id, job.original_filename)
 
         if documents:
@@ -247,7 +233,6 @@ def _run_ingestion_pipeline(job_id: str) -> str:
             qdrant.delete_by_candidate(candidate_id)
             qdrant.upsert_chunks(chunk_ids, vectors, payloads)
 
-        # Update job cuối cùng
         job.candidate_id = candidate_id
         job.status = "indexed"
         job.error_message, job.error_code, job.dispatch_error = None, None, None

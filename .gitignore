@@ -5,7 +5,6 @@ token.json
 *.pem
 *.key
 
-#  Python 
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,35 +15,27 @@ venv/
 env/
 .python-version
 
-#  Testing / coverage 
 .pytest_cache/
 .coverage
 htmlcov/
 
-#  Logs 
 logs/
 *.log
 
-#  Alembic — 
 
-# IDE 
 .vscode/
 .idea/
 *.swp
 
-# OS 
 .DS_Store
 Thumbs.db
 
-#
 evals/eval_data_template.json
 evals/eval_data.json
 
-#pdf
 *.pdf
 !tests/**/fixtures/*.pdf
 
-#db
 celerybeat-schedule.db
 chat_history.db
 chat_history.db-wal

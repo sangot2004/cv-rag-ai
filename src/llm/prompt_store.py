@@ -8,7 +8,6 @@ from langchain_core.prompts import PromptTemplate
 from langsmith import Client
 
 
-# Update a commit only after reviewing and testing that LangSmith revision.
 DEFAULT_PROMPT_COMMITS: dict[str, str] = {
     "cv-rag-classify-cv": "d5a2c949",
     "cv-rag-extract-cv": "55c22bda",

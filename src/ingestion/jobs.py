@@ -51,8 +51,6 @@ def publish(job_id):
 
 
 def accept(file_bytes, filename, *, posting_id=None, uploaded_by=None, source_type="web_upload", source_reference=None):
-    # Internal intake primitive. The HTTP entry point below always rechecks
-    # authorization and supplies the authenticated uploader, never client input.
     if not filename or len(filename) > 255 or "/" in filename or "\\" in filename or any(ord(c) < 32 for c in filename):
         raise ManagementError("INVALID_FILENAME", "Tên file không hợp lệ.", 422)
     if len(file_bytes) > min(settings.CV_MAX_FILE_SIZE_BYTES, HARD_MAX_BYTES):
@@ -110,7 +108,6 @@ def job_view(db, job):
     candidate = db.get(Candidate, job.candidate_id) if job.candidate_id else None
     error_code = job.error_code
     if not error_code and job.error_message:
-        # Legacy rows can contain provider keys, SQL or CV text. Never echo it.
         prefix = job.error_message.split(":", 1)[0]
         error_code = "DUPLICATE_CV" if prefix.startswith("duplicate_content") else "CV_REJECTED" if job.status == "rejected" else "INGESTION_FAILED"
     return dict(job_id=job.job_id, original_filename=job.original_filename, source_type=job.source_type,

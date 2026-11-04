@@ -22,8 +22,6 @@ def get_candidate_photo(candidate_id: str) -> tuple[bytes, str]:
     if not row.photo_object_key:
         raise CandidatePhotoNotFound()
 
-    # GET must not create buckets. Bound connection/read retries for this
-    # optional UI resource; storage failures must not block the candidate list.
     http = PoolManager(timeout=Timeout(connect=3, read=10), retries=Retry(total=1, backoff_factor=0))
     try:
         data = MinioStorage(ensure_bucket=False, http_client=http).download_bytes(row.photo_object_key)
@@ -36,8 +34,6 @@ def get_candidate_photo(candidate_id: str) -> tuple[bytes, str]:
     finally:
         http.clear()
 
-    # Serve raster images only, regardless of the object's extension/metadata.
-    # The ingestion pipeline currently saves JPEG portraits.
     if data.startswith(b"\xff\xd8\xff"):
         return data, "image/jpeg"
     if data.startswith(b"\x89PNG\r\n\x1a\n"):

@@ -66,7 +66,6 @@ def process_cv_job(self, job_id: str) -> None:
             logger.warning("Ingestion failed job_id=%s type=%s", job_id, type(exc).__name__)
             with SessionLocal() as session:
                 job = session.get(IngestionJob, job_id)
-                # The pipeline can have committed before telemetry failed.
                 if job.status == "indexed":
                     return
                 job.status = "dlq" if job.attempts >= job.max_attempts else "failed"

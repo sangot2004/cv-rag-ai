@@ -83,8 +83,6 @@ def process_batch(batch_id):
         ids = db.scalars(select(InvitationDelivery.delivery_id).where(InvitationDelivery.batch_id == batch_id,
             InvitationDelivery.status == "queued").order_by(InvitationDelivery.created_at, InvitationDelivery.delivery_id)).all()
     for identifier in ids:
-        # If DB logging fails after Gmail accepts a message, stop this delivery.
-        # The persisted sending claim prevents duplicate sends on task redelivery.
         try:
             deliver(identifier)
         except Exception as exc:

@@ -14,7 +14,6 @@ def _ensure_string(data) -> str:
     if isinstance(data, str):
         return data
     if isinstance(data, list):
-        # Nếu là mảng dict của Gemini, cố gắng rút phần 'text' ra
         texts = []
         for item in data:
             if isinstance(item, dict) and "text" in item:

@@ -34,7 +34,6 @@ def rank_candidates_for_jd(jd: JDSchema, top_k: int = 5) -> list[dict]:
         logger.warning("Không candidate nào khớp tiêu chí lọc cứng của JD - trả về rỗng.")
         return []
 
-    # xếp hạng ngữ nghĩa trong pool đã lọc
     raw_results = hybrid_search(jd.raw_text, top_k=MAX_SQL_PREFILTER_POOL)
     filtered_results = [
         r for r in raw_results if r["payload"].get("candidate_id") in prefiltered_ids
@@ -55,7 +54,6 @@ def rank_candidates_for_jd(jd: JDSchema, top_k: int = 5) -> list[dict]:
     shortlist = sorted(best_per_candidate.items(), key=lambda x: x[1], reverse=True)[:top_k]
     logger.info("Sau rerank + gom theo candidate: shortlist %d người", len(shortlist))
 
-    # Chấm điểm chi tiết cho đúng top K
     results = []
     for candidate_id, retrieval_score in shortlist:
         evaluation = evaluate_candidate(candidate_id, jd.raw_text)

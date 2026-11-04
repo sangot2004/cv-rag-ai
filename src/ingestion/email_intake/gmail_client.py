@@ -13,8 +13,6 @@ from src.config.settings import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# gmail.modify: xin quyền đọc + đánh dấu đã đọc/ gán nhãn, k cân quyền gửi mail
-# gmail.send: gửi mail phỏng vấn
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify",
           "https://www.googleapis.com/auth/gmail.send",
           ]

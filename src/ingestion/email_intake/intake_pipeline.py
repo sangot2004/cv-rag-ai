@@ -42,7 +42,6 @@ class EmailIntakePipeline:
             except Exception:
                 logger.exception("Failed processing message_id=%s", message_id)
             finally:
-                # Mark đã đọc dù thành công hay lỗi, tránh loop
                 self.gmail.mark_as_processed(message_id)
 
         return stats
