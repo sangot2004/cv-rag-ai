@@ -4,5 +4,5 @@ import { SESSION_COOKIE } from "@/lib/server/backend";
 import { EmailsApp } from "@/features/emails/emails-app";
 export default async function Bulk() {
   if (!(await cookies()).has(SESSION_COOKIE)) redirect("/login");
-  return <EmailsApp mode="bulk"/>;
+  return <EmailsApp mode="bulk" />;
 }

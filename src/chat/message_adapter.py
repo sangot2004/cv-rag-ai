@@ -59,8 +59,6 @@ def visible_messages(thread_id: str, messages) -> list[dict]:
 def pending_confirmations(state) -> list[dict]:
     result = {}
     for task in state.tasks:
-        # LangGraph retains old interrupts on completed tasks until all sibling
-        # tools finish. They must not be offered to the user a second time.
         if task.result is not None:
             continue
         for item in task.interrupts:

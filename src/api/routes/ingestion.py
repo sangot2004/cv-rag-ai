@@ -44,8 +44,6 @@ def authorize(token):
         "type": "object", "required": ["file", "posting_id"], "properties": {
             "file": {"type": "string", "format": "binary"}, "posting_id": {"type": "string", "format": "uuid"}}}}}}})
 async def upload(request: Request, token: Token, response: Response):
-    # Authorize before reading/spooling the multipart body. Repeat in the worker
-    # thread after reading in case the account was revoked during upload.
     await run_in_threadpool(authorize, token)
     if not request.headers.get("content-type", "").startswith("multipart/form-data;"):
         raise ManagementError("MULTIPART_REQUIRED", "Cần gửi file bằng multipart/form-data.", 415)

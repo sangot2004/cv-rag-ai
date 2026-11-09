@@ -149,6 +149,4 @@ def assign_posting(candidate_id, posting_id, expected_posting_id):
                 raise ManagementError("POSTING_UNAVAILABLE", "Vị trí không tồn tại hoặc đã ngừng tuyển.", 422)
         candidate.posting_id = posting_id
         db.commit()
-    # Retrieval resolves department scope against current SQL ownership; no
-    # department payload is cached into the vector/BM25 index.
     return {"candidate_id": candidate_id, "posting_id": posting_id}

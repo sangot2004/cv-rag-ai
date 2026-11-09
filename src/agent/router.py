@@ -41,7 +41,6 @@ def _invoke(thread_id, graph_input, department_id=None):
         with department_scope(department_id):
             return graph.invoke(graph_input, config={"configurable": {"thread_id": thread_id}})
     except Exception as exc:
-        # Do not replay the entire input: tools may have already completed.
         if is_quota_error(exc):
             get_key_manager().mark_exhausted()
         raise
@@ -84,6 +83,5 @@ def ask(question, thread_id, department_id=None):
 
 def resume(thread_id, confirmed, edited_criteria=None, department_id=None, confirmation_id=None):
     from src.chat.service import resume_message
-    # Streamlit displays the first pending form; select it under the lock.
     return _legacy_response(resume_message(thread_id, confirmation_id, confirmed, edited_criteria,
                                            department_id=department_id))

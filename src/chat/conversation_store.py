@@ -64,7 +64,6 @@ def touch_conversation(thread_id: str, first_message: str | None = None) -> None
 
 
 def delete_conversation(thread_id: str) -> None:
-    # Only DELETE may revisit an owned tombstone to retry physical cleanup.
     require_conversation(thread_id, include_deleted=True)
     with conversation_lock(thread_id):
         with SessionLocal() as session:

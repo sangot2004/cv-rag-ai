@@ -12,7 +12,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi">
-      <body><Providers>{children}</Providers></body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

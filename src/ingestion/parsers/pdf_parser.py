@@ -69,7 +69,6 @@ def extract_portrait_photo(data: bytes, max_pages_to_scan: int = 2) -> bytes | N
                 aspect_ratio = height / width
                 area = width * height
 
-                # ảnh quá nhỏ or quá lớn-> cancel
                 if area < 100 * 100 or area > 1200 * 1200:
                     continue
                 if aspect_ratio < 0.8:

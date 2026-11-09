@@ -13,8 +13,6 @@ PositionText = Annotated[str, StringConstraints(strip_whitespace=True, min_lengt
 
 
 class CandidateFilters(BaseModel):
-    # Query values arrive as strings; parse numbers/UUIDs while rejecting extra
-    # fields. JSON request bodies elsewhere retain StrictInput's strict types.
     model_config = ConfigDict(extra="forbid")
     page: int = Field(default=1, ge=1, le=1_000_000)
     page_size: int = Field(default=20, ge=1, le=100)

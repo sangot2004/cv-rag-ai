@@ -16,7 +16,7 @@ _FILENAME_RE = re.compile(settings.CV_FILENAME_PATTERN, re.IGNORECASE)
 @dataclass
 class ValidationResult:
     is_valid: bool
-    reason: str | None = None  # why rejected, khớp với error message trong ingestion_jobs table
+    reason: str | None = None
 
 
 def validate_filename(filename: str) -> ValidationResult:

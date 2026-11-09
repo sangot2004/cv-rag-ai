@@ -28,7 +28,6 @@ def create_app() -> FastAPI:
     ).split(",") if origin.strip()]
     if "*" in origins:
         raise ValueError("API_CORS_ORIGINS must contain explicit origins")
-    # CORS wraps our error middleware so errors also reach allowed browser clients.
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False,
                        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
                        allow_headers=["Authorization", "Content-Type"],

@@ -44,7 +44,6 @@ def list_candidates(*, page=1, page_size=20, q=None, position=None, skills=(),
                     max_years_experience=None, sort="newest"):
     conditions = visibility_conditions(department_id)
     if q:
-        # SQL-bound values plus escaped LIKE metacharacters: % and _ are literal.
         conditions.append(or_(Candidate.full_name.icontains(q, autoescape=True),
                               Candidate.email.icontains(q, autoescape=True)))
     if position:
@@ -57,8 +56,6 @@ def list_candidates(*, page=1, page_size=20, q=None, position=None, skills=(),
         conditions.append(Candidate.total_years_experience <= max_years_experience)
     for skill in {value.casefold() for value in skills}:
         terms = [term.casefold() for term in expand_search_terms(skill)]
-        # Every requested skill must match; aliases within a skill use OR.
-        # EXISTS avoids duplicate candidates/counts when several rows match.
         conditions.append(Candidate.skills.any(func.lower(func.trim(CandidateSkill.skill_name)).in_(terms)))
 
     ordering = {

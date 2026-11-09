@@ -54,7 +54,6 @@ def render_ops_dashboard():
     cols[0].metric("Độ trễ median (ms)", f"{df.latency_ms.median():.0f}")
     cols[1].metric("Độ trễ p95 (ms)", f"{df.latency_ms.quantile(.95):.0f}")
     cols[2].metric("Job DLQ toàn hệ thống", dlq_count)
-    # Summarize all observed calls of successful jobs within selected time/filter.
     cv = df[df.job_id.isin(indexed)]
     if not cv.empty:
         costs = cv.groupby("job_id").estimated_cost_usd.agg(lambda x: x.sum() if x.notna().all() else float('nan'))

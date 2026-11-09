@@ -84,8 +84,6 @@ def _previous(db, candidate_id, recipient, *, lock=False):
 
 
 def _lock_recipients(db, recipients):
-    # Serialize approval by destination, including different candidates sharing
-    # an address. Locking reads below see current data under MySQL REPEATABLE READ.
     for recipient in sorted({value.casefold() for value in recipients if value}):
         row = db.scalar(select(InvitationRecipientGuard).where(
             InvitationRecipientGuard.recipient_email == recipient).with_for_update())
@@ -108,8 +106,6 @@ def _draft_dto(db, draft, candidate):
 
 
 def _delivery_status(row):
-    # A crashed worker must remain reconcilable even when beat is not running.
-    # Unknown does not claim that the mail failed or authorize another send.
     if row.status == "sending" and row.started_at and row.started_at < now() - timedelta(minutes=10):
         return "unknown"
     return row.status
@@ -168,7 +164,6 @@ def create_batch(**data):
             db.commit()
         except IntegrityError:
             db.rollback()
-            # Concurrent requests with the same durable creation key converge.
             existing = db.scalar(select(InvitationBatch).where(InvitationBatch.request_id == data["request_id"]))
             if existing and existing.created_by == user.user_id and existing.request_hash == fingerprint:
                 return _batch(db, existing)
@@ -299,7 +294,6 @@ def retry_delivery(delivery_id, *, confirmed, allow_previous):
         delivery = _get(db, InvitationDelivery, delivery_id, lock=True)
         batch_id = delivery.batch_id
         if delivery.status != "failed":
-            # Retries after a lost response never queue another accepted/uncertain send.
             return _batch(db, _get(db, InvitationBatch, batch_id))
         _lock_recipients(db, [delivery.recipient_email])
         candidate = _get(db, Candidate, delivery.candidate_id, lock=True)

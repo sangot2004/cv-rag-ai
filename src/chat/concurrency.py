@@ -11,7 +11,6 @@ _running = set()
 
 @contextmanager
 def conversation_lock(thread_id: str, *, execution: bool = False):
-    # Refcounts include contenders, so a lock cannot disappear while in use.
     with _guard:
         lock, users = _locks.get(thread_id, (RLock(), 0))
         _locks[thread_id] = (lock, users + 1)

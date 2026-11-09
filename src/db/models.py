@@ -299,7 +299,7 @@ class SentEmail(Base):
     subject: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
     body: Mapped[str] = mapped_column(TEXT, nullable=False)
     gmail_message_id: Mapped[str | None] = mapped_column(VARCHAR(100), nullable=True)
-    status: Mapped[str] = mapped_column(VARCHAR(20), nullable=False, default="success")  # success / failed
+    status: Mapped[str] = mapped_column(VARCHAR(20), nullable=False, default="success")
     error_message: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     batch_id: Mapped[str | None] = mapped_column(
         CHAR(36), nullable=True
