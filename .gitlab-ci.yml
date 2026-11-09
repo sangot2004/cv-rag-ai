@@ -30,7 +30,8 @@ backend-tests:
     - python -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
     - python -m pip install --no-cache-dir -r requirements.txt
   script:
-    - python -m pytest -q --junitxml=reports/backend.xml
+    - python -m pytest -q --cov=src --cov-report=term --junitxml=reports/backend.xml
+  coverage: '/TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
     expire_in: 7 days
