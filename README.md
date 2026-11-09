@@ -2,6 +2,8 @@
 
 [![pipeline status](https://gitlab.com/sangot2004/cv-rag-ai/badges/feature/fastapi-core/pipeline.svg)](https://gitlab.com/sangot2004/cv-rag-ai/-/commits/feature/fastapi-core)
 
+[![coverage report](https://gitlab.com/sangot2004/cv-rag-ai/badges/feature/fastapi-core/coverage.svg)](https://gitlab.com/sangot2004/cv-rag-ai/-/commits/feature/fastapi-core)
+
 Frontend Next.js/BFF, FastAPI và worker Celery: tiếp nhận CV, tra cứu theo phòng ban,
 đánh giá JD/Top-K trong chat, chuẩn bị phỏng vấn, duyệt thư mời và System Ops.
 
