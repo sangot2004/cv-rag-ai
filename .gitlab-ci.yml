@@ -53,6 +53,7 @@ frontend-checks:
   extends: .frontend-job
   stage: verify
   script:
+    - npm run format:check
     - npm run lint
     - npm run typecheck
     - npm run build

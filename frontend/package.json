@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx,js,mjs}\" \"*.config.{ts,js,mjs,cjs}\" package.json tsconfig.json",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx,js,mjs}\" \"*.config.{ts,js,mjs,cjs}\" package.json tsconfig.json",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test"
   },
@@ -29,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "prettier": "3.9.10",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
