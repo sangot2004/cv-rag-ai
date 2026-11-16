@@ -35,7 +35,7 @@ import { CandidateResultCards } from "./candidate-results";
 import { AssistantMarkdown } from "./assistant-markdown";
 import { CriteriaForm } from "./criteria-form";
 
-const ATTACHMENT_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg"];
+const ATTACHMENT_EXTENSIONS = [".pdf", ".docx", ".png", ".jpg", ".jpeg"];
 const ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
 const ATTACHMENT_MAX_COUNT = 5;
 
@@ -187,7 +187,7 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
           id: crypto.randomUUID(),
           name: file.name,
           status: "error",
-          error: "Định dạng chưa hỗ trợ (chỉ PDF, PNG, JPG).",
+          error: "Định dạng chưa hỗ trợ (chỉ PDF, Word, PNG, JPG).",
         };
       if (file.size > ATTACHMENT_MAX_BYTES)
         return {
@@ -719,7 +719,7 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     maxLength={20000}
-                    placeholder="Hỏi về ứng viên hoặc dán mô tả công việc… (có thể đính kèm PDF/ảnh)"
+                    placeholder="Hỏi về ứng viên hoặc dán mô tả công việc… (có thể đính kèm PDF/Word/ảnh)"
                   />
                   <div className="composer-bottom">
                     <div className="composer-bottom-left">
@@ -737,8 +737,8 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
                       <button
                         type="button"
                         className="icon-button attach-button"
-                        aria-label="Đính kèm PDF/ảnh"
-                        title="Đính kèm PDF/ảnh"
+                        aria-label="Đính kèm PDF/Word/ảnh"
+                        title="Đính kèm PDF/Word/ảnh"
                         disabled={busy || attachments.length >= ATTACHMENT_MAX_COUNT}
                         onClick={() => fileInput.current?.click()}
                       >

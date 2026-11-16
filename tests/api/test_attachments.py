@@ -1,4 +1,7 @@
+import io
+
 import fitz
+from docx import Document
 
 from src.chat import attachments
 
@@ -37,7 +40,7 @@ def test_extract_rejects_unsupported_format(api):
     response = api.client.post(
         "/api/attachments/extract",
         headers=api.headers("alice"),
-        files={"file": ("resume.docx", b"not a real docx", "application/octet-stream")},
+        files={"file": ("resume.doc", b"legacy word", "application/msword")},
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "UNSUPPORTED_ATTACHMENT"
@@ -69,3 +72,48 @@ def test_split_attachments_hides_extracted_text():
                 "--- Nội dung file 'b.png' ---\nthêm")
     assert split_attachments(question) == ("Đánh giá JD này", ["jd.pdf", "b.png"])
     assert split_attachments("Câu hỏi thường") == ("Câu hỏi thường", [])
+
+
+def docx_bytes():
+    document = Document()
+    document.add_paragraph("Vị trí: Backend Engineer")
+    table = document.add_table(rows=1, cols=2)
+    table.rows[0].cells[0].text = "Kỹ năng"
+    table.rows[0].cells[1].text = "Python, SQL"
+    document.add_paragraph("Ít nhất 3 năm kinh nghiệm")
+    buffer = io.BytesIO()
+    document.save(buffer)
+    return buffer.getvalue()
+
+
+def test_extract_docx_paragraphs_and_tables_in_order(api):
+    response = api.client.post(
+        "/api/attachments/extract",
+        headers=api.headers("alice"),
+        files={"file": ("jd.docx", docx_bytes(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == (
+        "Vị trí: Backend Engineer\nKỹ năng | Python, SQL\nÍt nhất 3 năm kinh nghiệm"
+    )
+
+
+def test_extract_corrupt_docx_is_unreadable_not_500(api):
+    response = api.client.post(
+        "/api/attachments/extract",
+        headers=api.headers("alice"),
+        files={"file": ("jd.docx", b"definitely not a zip", "application/octet-stream")},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "ATTACHMENT_UNREADABLE"
+
+
+def test_extract_docx_rejects_decompression_bomb(api, monkeypatch):
+    monkeypatch.setattr(attachments, "MAX_DOCX_UNCOMPRESSED_BYTES", 10)
+    response = api.client.post(
+        "/api/attachments/extract",
+        headers=api.headers("alice"),
+        files={"file": ("jd.docx", docx_bytes(), "application/octet-stream")},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "ATTACHMENT_UNREADABLE"

@@ -75,7 +75,7 @@ test("unsupported file type is rejected client-side without calling the backend"
 }) => {
   await login(page);
   await fileInput(page).setInputFiles({
-    name: "resume.docx",
+    name: "resume.txt",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("not supported"),
   });
@@ -83,7 +83,7 @@ test("unsupported file type is rejected client-side without calling the backend"
   // An errored chip must not count as sendable content.
   await expect(page.getByRole("button", { name: "Gửi câu hỏi" })).toBeDisabled();
   expect((await calls(request)).some((c) => c.path === "/api/attachments/extract")).toBe(false);
-  await page.getByRole("button", { name: "Gỡ file resume.docx" }).click();
+  await page.getByRole("button", { name: "Gỡ file resume.txt" }).click();
   await expect(composerChips(page)).toHaveCount(0);
 });
 
@@ -107,5 +107,20 @@ test("at most five attachments per message", async ({ page }) => {
   await login(page);
   await fileInput(page).setInputFiles(["1", "2", "3", "4", "5", "6"].map((n) => pdf(`f${n}.pdf`)));
   await expect(composerChips(page)).toHaveCount(5);
-  await expect(page.getByRole("button", { name: "Đính kèm PDF/ảnh" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Đính kèm PDF/Word/ảnh" })).toBeDisabled();
+});
+
+test("Word .docx files are accepted and sent like PDFs", async ({ page, request }) => {
+  await login(page);
+  await fileInput(page).setInputFiles({
+    name: "jd.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: Buffer.from("PK fixture"),
+  });
+  await expect(composerChips(page).first()).toContainText("jd.docx");
+  await expect(composerChips(page).first()).not.toContainText("Định dạng chưa hỗ trợ");
+  await page.getByRole("button", { name: "Gửi câu hỏi" }).click();
+  await expect(page.locator(".message.user .attachment-chip")).toContainText("jd.docx");
+  const sent = (await calls(request)).find((c) => c.path.endsWith("/messages"));
+  expect(sent?.body.question).toContain("--- Nội dung file 'jd.docx' ---");
 });

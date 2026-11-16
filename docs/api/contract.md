@@ -127,7 +127,7 @@ POST resume:
 ## Đính kèm file trong chat
 
 `POST /api/attachments/extract` nhận `multipart/form-data` với 1 trường `file`
-(PDF/PNG/JPG, tối đa 15MB), trả `{"filename": "...", "text": "..."}` (text giới
+(PDF/Word .docx/PNG/JPG, tối đa 15MB; .docx đọc đoạn văn và bảng, không OCR), trả `{"filename": "...", "text": "..."}` (text giới
 hạn 5.000 ký tự đầu). Dùng chung `pdf_parser`/OCR Gemini vision với pipeline
 ingestion CV — không lưu file, không parse JD có cấu trúc, chỉ trả text thô để
 frontend nối vào câu hỏi trước khi gửi `/messages`. Yêu cầu đăng nhập (admin
