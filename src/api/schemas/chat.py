@@ -33,10 +33,16 @@ class FeedbackResponse(BaseModel):
     feedback: Literal["up", "down"]
 
 
+class AttachmentExtractResponse(BaseModel):
+    filename: str
+    text: str
+
+
 class Message(BaseModel):
     id: str
     role: Literal["user", "assistant"]
     content: str
+    attachments: list[str] = Field(default_factory=list)
     candidate_results: list[ResultGroup] = Field(default_factory=list)
 
 

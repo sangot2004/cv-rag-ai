@@ -81,6 +81,7 @@ export const historySchema = z.object({
       id: z.string(),
       role: z.enum(["user", "assistant"]),
       content: z.string(),
+      attachments: z.array(z.string()).optional(),
       candidate_results: candidateResultsSchema.optional(),
     }),
   ),
@@ -100,3 +101,8 @@ export const historySchema = z.object({
   execution_status: z.enum(["idle", "running", "awaiting_confirmation", "failed", "interrupted"]),
 });
 export type History = z.infer<typeof historySchema>;
+export const attachmentExtractSchema = z.object({
+  filename: z.string(),
+  text: z.string(),
+});
+export type AttachmentExtract = z.infer<typeof attachmentExtractSchema>;

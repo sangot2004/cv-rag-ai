@@ -803,6 +803,10 @@ const server = http.createServer(async (req, res) => {
       has_next: page * page_size < total,
     });
   }
+  if (url.pathname === "/api/attachments/extract") {
+    if (mode === "attachment-error") return error(422, "ATTACHMENT_UNREADABLE");
+    return json(200, { filename: input.filename, text: `Nội dung giả lập của ${input.filename}` });
+  }
   if (url.pathname === "/api/conversations") {
     if (req.method === "POST") {
       const item = {
@@ -857,7 +861,14 @@ const server = http.createServer(async (req, res) => {
     });
   if (match[2] === "messages") {
     if (c.execution_status === "failed") return error(409, "EXECUTION_INCOMPLETE");
-    c.messages.push({ id: randomUUID(), role: "user", content: input.question });
+    // Mirror the backend adapter: hide extracted attachment text from history.
+    const parts = input.question.split(/(?:^|\n\n)--- Nội dung file '([^\n]*)' ---\n/);
+    c.messages.push({
+      id: randomUUID(),
+      role: "user",
+      content: parts[0].trim(),
+      attachments: parts.filter((_, index) => index % 2 === 1),
+    });
     c.item.title = input.question.slice(0, 50);
     if (mode === "jd" || mode === "multiple") {
       c.pending_confirmations = [

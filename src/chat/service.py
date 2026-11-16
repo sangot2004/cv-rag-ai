@@ -3,7 +3,7 @@ from src.chat import checkpoints
 from src.chat.concurrency import conversation_lock, is_running
 from src.chat.conversation_store import require_conversation, touch_conversation
 from src.chat.errors import ChatConflict, MessageNotFound
-from src.chat.message_adapter import pending_confirmations, visible_messages
+from src.chat.message_adapter import pending_confirmations, split_attachments, visible_messages
 from src.ops.telemetry import monitored
 from src.chat.criteria import CriteriaEdits
 from src.auth.service import resolve_department
@@ -56,7 +56,7 @@ def send_message(thread_id: str, question: str, *, department_id=None) -> dict:
         state = checkpoints.read_state(thread_id)
         if state.next:
             raise ChatConflict("EXECUTION_INCOMPLETE", "Lượt trước chưa hoàn tất. Hãy tạo hội thoại mới.")
-        touch_conversation(thread_id, first_message=question)
+        touch_conversation(thread_id, first_message=split_attachments(question)[0])
         router._invoke_ask(question, thread_id, department_id)
         return _result(thread_id)
 

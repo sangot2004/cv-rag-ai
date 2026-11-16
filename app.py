@@ -2,6 +2,8 @@ from src.auth.ui import render_authenticated
 from src.chat.conversation_store import create_conversation, delete_conversation, list_conversations
 from src.chat.feedback_store import save_feedback
 from src.agent.router import get_conversation_messages, has_pending_confirmation
+from src.chat.attachments import extract_text_from_docx
+from src.chat.errors import AttachmentError
 from src.ingestion.extraction.llm_extractor import ocr_extract_text_from_images
 from src.ingestion.parsers.pdf_parser import extract_text_from_pdf, rasterize_pages
 from src.interfaces.query_interface import (
@@ -140,9 +142,7 @@ def render_app(current_user):
         dụng đúng module pdf_parser/OCR đã có, KHÔNG viết logic extract riêng.
 
         Hỗ trợ: PDF (text layer hoặc scan, tự OCR fallback), ảnh (PNG/JPG, OCR
-        thẳng qua Gemini vision). CHƯA hỗ trợ DOCX — python-docx chưa có sẵn
-        trong project (chỉ có PDF parser), báo rõ cho HR biết thay vì âm thầm
-        bỏ qua.
+        thẳng qua Gemini vision), Word .docx (đọc đoạn văn + bảng).
         """
         filename = uploaded_file.name.lower()
         file_bytes = uploaded_file.read()
@@ -158,8 +158,11 @@ def render_app(current_user):
             return ocr_extract_text_from_images([file_bytes])
 
         if filename.endswith(".docx"):
-            st.warning(f"'{uploaded_file.name}': chưa hỗ trợ đọc file DOCX, bỏ qua file này.")
-            return None
+            try:
+                return extract_text_from_docx(file_bytes)
+            except AttachmentError as e:
+                st.warning(f"'{uploaded_file.name}': {e}")
+                return None
 
         st.warning(f"'{uploaded_file.name}': định dạng không được hỗ trợ, bỏ qua.")
         return None
@@ -222,7 +225,7 @@ def render_app(current_user):
     # TAB 1 — Chat hỏi đáp
     with tab_chat:
         st.caption(
-            "Hỏi tự nhiên bằng tiếng Việt, có thể đính kèm PDF/ảnh ngay tại ô nhập — ví dụ: "
+            "Hỏi tự nhiên bằng tiếng Việt, có thể đính kèm PDF/Word/ảnh ngay tại ô nhập — ví dụ: "
             "\"Ứng viên nào biết Python?\", \"Tìm top ứng viên cho JD đính kèm này\""
         )
 
@@ -250,9 +253,9 @@ def render_app(current_user):
             render_confirmation_ui(active_thread_id, pending_payload)
         else:
             chat_value = st.chat_input(
-                "Nhập câu hỏi... (có thể đính kèm PDF/ảnh)",
+                "Nhập câu hỏi... (có thể đính kèm PDF/Word/ảnh)",
                 accept_file=True,
-                file_type=["pdf", "png", "jpg", "jpeg"],
+                file_type=["pdf", "docx", "png", "jpg", "jpeg"],
             )
 
             if chat_value:

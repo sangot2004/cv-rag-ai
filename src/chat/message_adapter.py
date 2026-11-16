@@ -1,7 +1,20 @@
 """Only expose user text and final assistant text from the agent state."""
 import hashlib
 import json
+import re
 from src.chat.criteria import Criteria
+
+# The frontend/Streamlit append extracted attachment text to the question as
+# "--- Nội dung file '<name>' ---\n<text>". The agent needs the full text, but
+# the visible history should only show the question and the file names.
+ATTACHMENT_MARKER = re.compile(r"(?:^|\n\n)--- Nội dung file '([^\n]*)' ---\n")
+
+
+def split_attachments(text: str) -> tuple[str, list[str]]:
+    parts = ATTACHMENT_MARKER.split(text)
+    if len(parts) == 1:
+        return text, []
+    return parts[0].strip(), parts[1::2]
 
 
 def display_text(content) -> str:
@@ -46,6 +59,8 @@ def visible_messages(thread_id: str, messages) -> list[dict]:
             material = json.dumps([thread_id, index, kind, text], ensure_ascii=False)
             identifier = "legacy-" + hashlib.sha256(material.encode()).hexdigest()
         item = {"id": str(identifier), "role": "user" if kind == "human" else "assistant", "content": text}
+        if kind == "human":
+            item["content"], item["attachments"] = split_attachments(text)
         if kind == "ai" and artifacts:
             from src.chat.candidate_results import project_artifacts
             results = project_artifacts(artifacts)

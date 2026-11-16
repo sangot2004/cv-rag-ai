@@ -12,7 +12,7 @@ from redis.exceptions import RedisError
 
 from src.auth.errors import AccessDenied, AuthenticationRequired, ConversationNotFound
 from src.management.errors import ManagementError
-from src.chat.errors import ChatConflict, CleanupPending, DependencyUnavailable, MessageNotFound
+from src.chat.errors import AttachmentError, ChatConflict, CleanupPending, DependencyUnavailable, MessageNotFound
 from src.candidates.errors import CandidateNotFound, CandidatePhotoNotFound
 from src.llm.key_manager import is_quota_error
 from src.notification.errors import InvitationConflict, InvitationNotFound
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 async def error_response(request, exc):
     status, code, message = 500, "INTERNAL_ERROR", "Đã xảy ra lỗi nội bộ."
-    if isinstance(exc, ManagementError):
+    if isinstance(exc, (ManagementError, AttachmentError)):
         status, code, message = exc.status, exc.code, str(exc)
     elif isinstance(exc, AuthenticationRequired):
         status, code, message = 401, "AUTHENTICATION_REQUIRED", "Thông tin đăng nhập hoặc phiên không hợp lệ."
