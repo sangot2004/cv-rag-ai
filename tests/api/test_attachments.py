@@ -4,8 +4,12 @@ from src.chat import attachments
 
 
 def pdf_bytes(text="Candidate CV Python"):
+    # Repeat on several lines so the extracted text clears CV_MIN_TEXT_LENGTH
+    # and the OCR/Gemini fallback (needs a real GOOGLE_API_KEY) never triggers.
     with fitz.open() as doc:
-        doc.new_page().insert_text((40, 40), text)
+        page = doc.new_page()
+        for line in range(6):
+            page.insert_text((40, 40 + line * 20), text)
         return doc.tobytes()
 
 
