@@ -81,6 +81,7 @@ export const historySchema = z.object({
       id: z.string(),
       role: z.enum(["user", "assistant"]),
       content: z.string(),
+      attachments: z.array(z.string()).optional(),
       candidate_results: candidateResultsSchema.optional(),
     }),
   ),

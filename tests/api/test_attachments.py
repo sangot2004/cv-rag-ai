@@ -61,3 +61,11 @@ def test_extract_rejects_empty_file(api):
         files={"file": ("jd.pdf", b"", "application/pdf")},
     )
     assert response.status_code == 422
+
+
+def test_split_attachments_hides_extracted_text():
+    from src.chat.message_adapter import split_attachments
+    question = ("Đánh giá JD này\n\n--- Nội dung file 'jd.pdf' ---\nNhiều dòng\ntext\n\n"
+                "--- Nội dung file 'b.png' ---\nthêm")
+    assert split_attachments(question) == ("Đánh giá JD này", ["jd.pdf", "b.png"])
+    assert split_attachments("Câu hỏi thường") == ("Câu hỏi thường", [])

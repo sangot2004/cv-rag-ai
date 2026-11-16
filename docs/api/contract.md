@@ -133,6 +133,11 @@ ingestion CV — không lưu file, không parse JD có cấu trúc, chỉ trả 
 frontend nối vào câu hỏi trước khi gửi `/messages`. Yêu cầu đăng nhập (admin
 hoặc tester); không kiểm tra phòng ban vì không truy cập DB.
 
+Khi gửi `/messages`, frontend nối text trích xuất vào `question` dưới dạng
+`--- Nội dung file '<tên>' ---`. Agent nhận đủ nội dung, nhưng khi đọc lại lịch sử
+backend tách phần này ra: `content` chỉ còn câu hỏi gốc, `attachments` là danh sách
+tên file (tiêu đề hội thoại cũng lấy từ câu hỏi gốc).
+
 ## Feedback và xóa
 
 Feedback: `{"message_id": "...", "feedback": "up"}` (hoặc down).

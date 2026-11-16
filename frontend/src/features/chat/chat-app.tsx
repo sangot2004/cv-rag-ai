@@ -578,6 +578,16 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
                   ) : (
                     <div className="message-text">{message.content}</div>
                   )}
+                  {message.role === "user" && !!message.attachments?.length && (
+                    <div className="attachment-chips">
+                      {message.attachments.map((name, index) => (
+                        <span className="attachment-chip" key={`${name}-${index}`}>
+                          <FileText size={13} />
+                          <span className="attachment-chip-name">{name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {message.role === "assistant" && !!message.candidate_results?.length && (
                     <CandidateResultCards groups={message.candidate_results} userRole={user.role} />
                   )}
