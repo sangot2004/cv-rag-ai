@@ -100,3 +100,8 @@ export const historySchema = z.object({
   execution_status: z.enum(["idle", "running", "awaiting_confirmation", "failed", "interrupted"]),
 });
 export type History = z.infer<typeof historySchema>;
+export const attachmentExtractSchema = z.object({
+  filename: z.string(),
+  text: z.string(),
+});
+export type AttachmentExtract = z.infer<typeof attachmentExtractSchema>;

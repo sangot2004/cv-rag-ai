@@ -24,6 +24,7 @@ Thông số và kiểu response đầy đủ xem `/openapi.json`.
 | POST | /api/conversations/{id}/messages | 200, kết quả chat |
 | POST | /api/conversations/{id}/resume | 200, kết quả chat |
 | POST | /api/conversations/{id}/feedback | 201, message_id và feedback |
+| POST | /api/attachments/extract | 200, filename và text trích xuất từ file đính kèm |
 | GET | /api/candidates | 200, items/total/page/page_size/total_pages/has_next; admin |
 | GET | /api/candidates/{candidate_id} | 200, hồ sơ CV đã trích xuất; admin |
 | GET | /api/candidates/{candidate_id}/photo | 200, ảnh JPEG/PNG/WebP; admin |
@@ -122,6 +123,15 @@ POST resume:
 - Extraction được lưu bằng LangGraph task trước interrupt, resume dùng lại dữ liệu đó.
 - Kết quả resume có thể là answer, confirmation_required hoặc cancelled
   (cancelled có message=null nếu không sinh câu trả lời).
+
+## Đính kèm file trong chat
+
+`POST /api/attachments/extract` nhận `multipart/form-data` với 1 trường `file`
+(PDF/PNG/JPG, tối đa 15MB), trả `{"filename": "...", "text": "..."}` (text giới
+hạn 5.000 ký tự đầu). Dùng chung `pdf_parser`/OCR Gemini vision với pipeline
+ingestion CV — không lưu file, không parse JD có cấu trúc, chỉ trả text thô để
+frontend nối vào câu hỏi trước khi gửi `/messages`. Yêu cầu đăng nhập (admin
+hoặc tester); không kiểm tra phòng ban vì không truy cập DB.
 
 ## Feedback và xóa
 

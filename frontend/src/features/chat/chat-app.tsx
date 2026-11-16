@@ -16,11 +16,15 @@ import {
   RefreshCw,
   ShieldCheck,
   MessageSquare,
+  Paperclip,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { SessionGate } from "@/features/auth/session-gate";
 import { Brand, ErrorNotice, Loading } from "@/components/ui";
 import { api, ApiError, broadcastSession, leaveSession } from "@/lib/api";
 import {
+  attachmentExtractSchema,
   conversationListSchema,
   conversationSchema,
   historySchema,
@@ -30,6 +34,47 @@ import {
 import { CandidateResultCards } from "./candidate-results";
 import { AssistantMarkdown } from "./assistant-markdown";
 import { CriteriaForm } from "./criteria-form";
+
+const ATTACHMENT_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg"];
+const ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
+const ATTACHMENT_MAX_COUNT = 5;
+
+type Attachment = {
+  id: string;
+  name: string;
+  status: "extracting" | "ready" | "error";
+  text?: string;
+  error?: string;
+};
+
+async function extractAttachmentText(file: File, signal?: AbortSignal) {
+  const form = new FormData();
+  form.append("file", file);
+  let response: Response;
+  try {
+    response = await fetch("/api/backend/attachments/extract", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      body: form,
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    throw new ApiError(0, "NETWORK_ERROR", "Mất kết nối khi đọc file đính kèm.");
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    if (response.status === 401) leaveSession("expired");
+    throw new ApiError(
+      response.status,
+      data?.error?.code || "HTTP_ERROR",
+      data?.error?.message || "Không đọc được file đính kèm.",
+      data?.error?.request_id,
+    );
+  }
+  return attachmentExtractSchema.parse(await response.json());
+}
 
 export function ChatApp({ initialThread }: { initialThread?: string }) {
   return (
@@ -52,6 +97,8 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [votes, setVotes] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
   const drawer = useRef<HTMLDialogElement>(null);
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
@@ -118,11 +165,69 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
     setError(null);
     setNeedsRefresh(false);
     setNotice("");
+    setAttachments([]);
     window.history.replaceState(null, "", id ? `/chat?thread=${encodeURIComponent(id)}` : "/chat");
     drawer.current?.close();
   }
   function setDraft(value: string) {
     setDrafts((old) => ({ ...old, [thread]: value }));
+  }
+  function addAttachments(files: FileList | File[]) {
+    if (busy) return;
+    const room = ATTACHMENT_MAX_COUNT - attachments.length;
+    if (room <= 0) {
+      setError(new Error(`Chỉ đính kèm tối đa ${ATTACHMENT_MAX_COUNT} file mỗi lượt.`));
+      return;
+    }
+    const picked = Array.from(files).slice(0, room);
+    const next: Attachment[] = picked.map((file) => {
+      const lower = file.name.toLowerCase();
+      if (!ATTACHMENT_EXTENSIONS.some((ext) => lower.endsWith(ext)))
+        return {
+          id: crypto.randomUUID(),
+          name: file.name,
+          status: "error",
+          error: "Định dạng chưa hỗ trợ (chỉ PDF, PNG, JPG).",
+        };
+      if (file.size > ATTACHMENT_MAX_BYTES)
+        return {
+          id: crypto.randomUUID(),
+          name: file.name,
+          status: "error",
+          error: "File vượt quá 15MB.",
+        };
+      return { id: crypto.randomUUID(), name: file.name, status: "extracting" };
+    });
+    setAttachments((old) => [...old, ...next]);
+    next.forEach((entry, index) => {
+      if (entry.status !== "extracting") return;
+      const file = picked[index];
+      extractAttachmentText(file)
+        .then((result) =>
+          setAttachments((old) =>
+            old.map((item) =>
+              item.id === entry.id ? { ...item, status: "ready", text: result.text } : item,
+            ),
+          ),
+        )
+        .catch((error) =>
+          setAttachments((old) =>
+            old.map((item) =>
+              item.id === entry.id
+                ? {
+                    ...item,
+                    status: "error",
+                    error:
+                      error instanceof ApiError ? error.message : "Không đọc được file đính kèm.",
+                  }
+                : item,
+            ),
+          ),
+        );
+    });
+  }
+  function removeAttachment(id: string) {
+    setAttachments((old) => old.filter((item) => item.id !== id));
   }
   async function refresh(id = thread) {
     if (id) {
@@ -159,8 +264,15 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
   }
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (blocked || !draft.trim()) return;
-    const question = draft;
+    const readyAttachments = attachments.filter((item) => item.status === "ready");
+    const extractingAttachments = attachments.some((item) => item.status === "extracting");
+    if (blocked || extractingAttachments || (!draft.trim() && !readyAttachments.length)) return;
+    const attachedTexts = readyAttachments.map(
+      (item) => `--- Nội dung file '${item.name}' ---\n${item.text}`,
+    );
+    const question = attachedTexts.length
+      ? (draft.trim() || "Hãy phân tích tài liệu đính kèm") + "\n\n" + attachedTexts.join("\n\n")
+      : draft;
     const draftKey = thread;
     await action(async () => {
       let id = thread;
@@ -178,6 +290,7 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
         body: { question },
       });
       setDrafts((old) => ({ ...old, [draftKey]: "", [id]: "" }));
+      setAttachments([]);
       await refresh(id);
     });
   }
@@ -562,6 +675,32 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
             ) : (
               <form onSubmit={send}>
                 <div className="composer-box">
+                  {!!attachments.length && (
+                    <div className="attachment-chips">
+                      {attachments.map((item) => (
+                        <span className={`attachment-chip ${item.status}`} key={item.id}>
+                          {item.status === "extracting" ? (
+                            <Loader2 size={13} className="spin" />
+                          ) : (
+                            <FileText size={13} />
+                          )}
+                          <span className="attachment-chip-name">{item.name}</span>
+                          {item.status === "error" && (
+                            <small className="attachment-chip-error">{item.error}</small>
+                          )}
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label={`Gỡ file ${item.name}`}
+                            disabled={busy}
+                            onClick={() => removeAttachment(item.id)}
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <label className="sr-only" htmlFor="question">
                     Câu hỏi của bạn
                   </label>
@@ -570,13 +709,42 @@ function Workspace({ user, initialThread }: { user: User; initialThread?: string
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     maxLength={20000}
-                    placeholder="Hỏi về ứng viên hoặc dán mô tả công việc…"
+                    placeholder="Hỏi về ứng viên hoặc dán mô tả công việc… (có thể đính kèm PDF/ảnh)"
                   />
                   <div className="composer-bottom">
-                    <span className="char-count">
-                      {draft.length.toLocaleString("vi-VN")} / 20.000 ký tự
-                    </span>
-                    <button className="btn primary compact" disabled={!draft.trim()}>
+                    <div className="composer-bottom-left">
+                      <input
+                        ref={fileInput}
+                        type="file"
+                        accept={ATTACHMENT_EXTENSIONS.join(",")}
+                        multiple
+                        hidden
+                        onChange={(e) => {
+                          if (e.target.files?.length) addAttachments(e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="icon-button attach-button"
+                        aria-label="Đính kèm PDF/ảnh"
+                        title="Đính kèm PDF/ảnh"
+                        disabled={busy || attachments.length >= ATTACHMENT_MAX_COUNT}
+                        onClick={() => fileInput.current?.click()}
+                      >
+                        <Paperclip size={17} />
+                      </button>
+                      <span className="char-count">
+                        {draft.length.toLocaleString("vi-VN")} / 20.000 ký tự
+                      </span>
+                    </div>
+                    <button
+                      className="btn primary compact"
+                      disabled={
+                        attachments.some((item) => item.status === "extracting") ||
+                        (!draft.trim() && !attachments.some((item) => item.status === "ready"))
+                      }
+                    >
                       <Send size={15} />
                       Gửi câu hỏi
                     </button>

@@ -33,6 +33,11 @@ class FeedbackResponse(BaseModel):
     feedback: Literal["up", "down"]
 
 
+class AttachmentExtractResponse(BaseModel):
+    filename: str
+    text: str
+
+
 class Message(BaseModel):
     id: str
     role: Literal["user", "assistant"]

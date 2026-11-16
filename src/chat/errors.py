@@ -14,3 +14,9 @@ class MessageNotFound(LookupError):
 
 class DependencyUnavailable(RuntimeError):
     pass
+
+
+class AttachmentError(RuntimeError):
+    def __init__(self, code: str, message: str, status: int = 422):
+        super().__init__(message)
+        self.code, self.status = code, status
