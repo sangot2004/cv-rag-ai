@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def match_posting_for_position(applied_position: str | None) -> str | None:
-    if not applied_position:
+    if not applied_position or not applied_position.strip():
         return None
 
     with SessionLocal() as session:
